@@ -30,13 +30,11 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * Floating overlay: a small draggable bubble that expands into a translucent
- * panel showing Jev's read of the chat plus 3 ranked candidate replies. All
- * actions are copy / fill — never send.
+ * 悬浮窗：可拖动的小气泡，展开后显示聊天分析结果和 3 条排序候选回复。
+ * 所有操作都只是复制或填入，不会自动发送。
  *
- * Design goals: let the chat show through (adjustable opacity), keep the signal
- * scannable (danger badge + intent headline + reply cards), and stay out of the
- * way (draggable bubble that snaps to the edge and remembers its position).
+ * 设计目标：聊天页面保持可见，透明度可以调整；信息便于快速查看；
+ * 气泡可以拖动、吸附到屏幕边缘并记住位置。
  */
 class OverlayController(private val ctx: Context) {
 
@@ -152,7 +150,7 @@ class OverlayController(private val ctx: Context) {
             layoutParams = FrameLayout.LayoutParams(dp(52), dp(52))
         }
         val b = TextView(ctx).apply {
-            text = "Jev"
+            text = "jevchat"
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
             textSize = 13f
@@ -190,7 +188,7 @@ class OverlayController(private val ctx: Context) {
         // Header
         val header = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         header.addView(TextView(ctx).apply {
-            text = "Jev 分析"; setTextColor(Color.parseColor("#111827")); textSize = 15f
+            text = "jevchat 分析"; setTextColor(Color.parseColor("#111827")); textSize = 15f
             setTypeface(typeface, Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         })
@@ -237,7 +235,7 @@ class OverlayController(private val ctx: Context) {
                 MotionEvent.ACTION_MOVE -> {
                     val dx = (e.rawX - touchX).toInt(); val dy = (e.rawY - touchY).toInt()
                     if (abs(dx) > dp(6) || abs(dy) > dp(6)) moved = true
-                    // Keep a margin from both side edges: the extreme edge is MIUI's
+                    // 与屏幕两侧保留边距，避免悬浮窗贴边影响拖动。
                     // back-gesture zone, which steals touches and makes the bubble
                     // "stuck". Free positioning (no forced edge snap) also avoids it.
                     params.x = (startX + dx).coerceIn(dp(8), screenW - dp(60))
@@ -270,7 +268,7 @@ class OverlayController(private val ctx: Context) {
         menu.addView(menuItem("预采集过去的历史") { root?.removeView(menu); onImportHistory?.invoke() })
         menu.addView(menuItem("把当前会话存为联系人") { onSaveContact?.invoke(); root?.removeView(menu) })
         menu.addView(menuItem("打开设置") { openSettings(); root?.removeView(menu) })
-        menu.addView(menuItem("关闭 Jevchat") { root?.removeView(menu); onDisable?.invoke() })
+        menu.addView(menuItem("关闭 jevchat") { root?.removeView(menu); onDisable?.invoke() })
         menu.addView(menuItem("取消") { root?.removeView(menu) })
         root?.addView(menu)
     }
@@ -538,7 +536,7 @@ class OverlayController(private val ctx: Context) {
         }
 
         views.add(divider())
-        views.add(line(if (a.continuation) "接着当前话题" else "候选回复（Jev 排序）", "#9CA3AF", 12f))
+        views.add(line(if (a.continuation) "接着当前话题" else "候选回复（模型排序）", "#9CA3AF", 12f))
         if (generating) {
             views.add(hint("生成中…"))
         } else {

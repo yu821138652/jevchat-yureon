@@ -10,11 +10,8 @@ import android.os.Build
 import android.os.IBinder
 
 /**
- * A minimal foreground service whose only job is to keep the app process at
- * foreground importance so MIUI/HyperOS "Greezer" does not freeze the
- * accessibility service (which otherwise dies within seconds — see P1 report).
- * Not a full fix on its own: the user must also grant autostart / no battery
- * restriction, but this holds the process while the app is set up and running.
+ * 保持应用进程处于前台重要性，降低部分手机系统冻结无障碍服务的概率。
+ * 这不是完整的后台保活方案，用户仍需要授予自启动和不受电池优化限制等权限。
  */
 class KeepAliveService : Service() {
 
@@ -23,12 +20,12 @@ class KeepAliveService : Service() {
         val channelId = "jev_keepalive"
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val ch = NotificationChannel(channelId, "Jev 助手运行中", NotificationManager.IMPORTANCE_MIN)
+            val ch = NotificationChannel(channelId, "jevchat 运行中", NotificationManager.IMPORTANCE_MIN)
             ch.setShowBadge(false)
             nm.createNotificationChannel(ch)
         }
         val notif: Notification = Notification.Builder(this, channelId)
-            .setContentTitle("Jev 助手运行中")
+            .setContentTitle("jevchat 运行中")
             .setContentText("在聊天旁读消息、给回复建议")
             .setSmallIcon(android.R.drawable.ic_menu_edit)
             .setOngoing(true)

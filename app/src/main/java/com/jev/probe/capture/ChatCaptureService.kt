@@ -175,14 +175,13 @@ open class ChatCaptureService : AccessibilityService() {
             overlay?.hide()
             stopKeepAlive()
         }
-        // Keep the process at foreground importance so MIUI does not freeze us.
+        // 保持进程处于前台重要性，降低系统冻结服务的概率。
         if (prefs.enabled) runCatching { KeepAliveService.start(this) }
         // Load the bundled OCR model now, off the main thread: the first
         // recognize() otherwise pays for it inside the screenshot callback.
         submit { MlKitOcr.warmUp() }
-        // HyperOS may kill and restart us. On (re)connect, proactively re-show the
-        // bubble for whatever chat is already open, so it comes back on its own
-        // instead of waiting for the user to scroll.
+        // 部分系统可能杀死并重启服务。重新连接时主动恢复当前聊天的悬浮窗，
+        // 不必等待用户再次滚动页面。
         main.postDelayed({ if (prefs.enabled) runCatching { maybeCapture() } }, 900)
         Log.i(TAG, "capture service connected")
     }
@@ -325,7 +324,7 @@ open class ChatCaptureService : AccessibilityService() {
         val showing = overlay?.isShowing() == true
         // Same content and the bubble is already up → nothing to do.
         if (sig == lastSignature && showing) return
-        // Same content but the bubble is gone (killed by MIUI, or we left and came
+        // 内容未变但悬浮窗消失（可能被系统回收，或离开聊天后又返回）时，
         // back) → just put the bubble back, do NOT re-analyze (saves tokens/time).
         if (sig == lastSignature && !showing) {
             main.post { overlay?.showIdle(identified.title, identified.latestFrom == "me") }
