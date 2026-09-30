@@ -1,17 +1,10 @@
-Jev 聊天助手 (Jev Chat Assistant)
-Copyright (c) 2026 Finderchangchang and the jev-chat contributors
-https://github.com/jev-chat/jev-chat-jarvis · https://chatjevs.com
+# 上游出处与许可证说明
 
-本项目以 MIT 协议开源（见 LICENSE）。
+本项目是 `jevchat (Yureon)` 个人维护的 Android 二次开发版本，基于：
 
-- 允许个人和商业使用、修改、再分发、集成到自有产品中，无需付费或事先授权。
-- 分发或商用时，必须保留 LICENSE 与本 NOTICE 文件，并在产品的「关于」页、说明文档或发布页中注明出处。
-  推荐写法：基于 Jev 聊天助手（https://github.com/jev-chat/jev-chat-jarvis）二次开发 / 集成。
-- 不得使用「Jev 聊天助手」「jev-chat」名称或官网域名暗示由原作者出品或背书。
+- 上游项目：[Finderchangchang/jev-chat-JARVIS](https://github.com/Finderchangchang/jev-chat-JARVIS)
+- 上游版权：Copyright (c) 2026 Finderchangchang and the jev-chat contributors
 
-This project is licensed under the MIT License (see LICENSE).
-Commercial use, modification and redistribution are permitted. When you
-distribute or commercialize this software or a derivative, keep the LICENSE
-and this NOTICE, and credit the source, e.g. "Based on Jev Chat Assistant
-(https://github.com/jev-chat/jev-chat-jarvis)". Do not use the project name
-or domain to imply endorsement by the original authors.
+上游代码以 MIT License 发布。再分发上游代码或其衍生作品时，请保留 [LICENSE](LICENSE) 和本文件，并注明上游出处。本项目由 `yu821138652` 独立维护，不代表上游作者，也不暗示获得上游背书。
+
+本仓库的个人修改由 `yu821138652` 维护；其版权和许可仍受仓库所附 MIT License 约束。
