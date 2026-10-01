@@ -359,7 +359,9 @@ class KnowledgeActivity : AppCompatActivity() {
     }
 
     private fun styleDialogWindow(dialog: AlertDialog) {
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        // Keep the title, content and action row on one solid surface. A
+        // transparent window made the title float over the dimmed page.
+        dialog.window?.setBackgroundDrawable(round(dp(18), Color.WHITE))
         dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.90f).roundToInt(),
             ViewGroup.LayoutParams.WRAP_CONTENT)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(accent)
