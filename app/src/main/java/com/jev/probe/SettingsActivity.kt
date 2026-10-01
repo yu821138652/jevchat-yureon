@@ -301,17 +301,6 @@ class SettingsActivity : AppCompatActivity() {
             startActivity(android.content.Intent(this, KnowledgeActivity::class.java))
         })
         val kbResult = resultText()
-        card2.addView(cardBtn("主动合成/更新全局说话风格") {
-            synthesizeGlobalStyle(kbResult)
-        })
-        card2.addView(cardBtn("查看当前全局说话风格") {
-            val profile = KbStore.get(this).styleProfile(null)
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("全局说话风格")
-                .setMessage(profile?.summary ?: "还没有合成全局风格档案。")
-                .setPositiveButton("关闭", null)
-                .show()
-        })
         card2.addView(cardBtn("清空说话风格档案") {
             clearStyleDialog(kbResult)
         })

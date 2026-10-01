@@ -274,13 +274,13 @@ class KnowledgeActivity : AppCompatActivity() {
         }
         c.addView(inspect)
         val styleInspect = TextView(this).apply {
-            text = "查看此人说话风格档案"
+            text = "查看面向此人说话风格"
             textSize = 12.5f; setTextColor(accent); setTypeface(typeface, Typeface.BOLD)
             setPadding(0, dp(8), 0, dp(2))
             setOnClickListener { styleDialog(c0) }
         }
         c.addView(styleInspect)
-        c.addView(smallAction("主动合成/更新此人风格") { synthesizeStyle(c0) })
+        c.addView(smallAction("主动合成/更新面向此人风格") { synthesizeStyle(c0) })
         c.setOnClickListener { editContactDialog(c0) }
         c.setOnLongClickListener {
             confirm("删除联系人", "删除「${c0.name}」及其全部历史？不可恢复。") {
@@ -293,7 +293,7 @@ class KnowledgeActivity : AppCompatActivity() {
 
     private fun styleDialog(contact: Contact?) {
         val profile = store.styleProfile(contact?.id)
-        val title = contact?.name?.let { "$it · 说话风格" } ?: "全局 · 说话风格"
+        val title = contact?.name?.let { "面向$it · 说话风格" } ?: "全局说话风格"
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(8), dp(18), dp(8))
@@ -315,7 +315,43 @@ class KnowledgeActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(title)
             .setView(scroll)
-            .setPositiveButton("关闭", null)
+            .setPositiveButton("编辑") { _, _ -> editStyleDialog(contact) }
+            .setNegativeButton("关闭", null)
+            .show()
+    }
+
+    private fun editStyleDialog(contact: Contact?) {
+        val profile = store.styleProfile(contact?.id)
+        val box = dialogBox()
+        box.addView(text(
+            "这里保存的是你面向${contact?.name ?: "所有对象"}的表达风格描述，不是对方的性格。",
+            12f, sub
+        ))
+        val input = edit(profile?.summary ?: "", "例如：语气直接但不生硬，句子较短，常先回应重点再补充细节").apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            minLines = 7
+            gravity = Gravity.TOP
+        }
+        box.addView(input)
+        AlertDialog.Builder(this)
+            .setTitle(if (contact == null) "编辑全局说话风格" else "编辑面向${contact.name}的说话风格")
+            .setView(wrapScroll(box))
+            .setPositiveButton("保存") { _, _ ->
+                val summary = input.text.toString().trim()
+                if (summary.isBlank()) {
+                    toast("风格描述不能空；需要删除请使用清空风格档案")
+                    return@setPositiveButton
+                }
+                store.saveStyleProfile(
+                    contact?.id,
+                    com.jev.probe.core.kb.StyleProfile(
+                        if (contact == null) "全局说话风格" else "面向${contact.name}的说话风格",
+                        summary
+                    )
+                )
+                render()
+            }
+            .setNegativeButton("取消", null)
             .show()
     }
 
