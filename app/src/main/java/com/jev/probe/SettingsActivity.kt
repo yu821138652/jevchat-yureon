@@ -301,10 +301,10 @@ class SettingsActivity : AppCompatActivity() {
             startActivity(android.content.Intent(this, KnowledgeActivity::class.java))
         })
         val kbResult = resultText()
-        card2.addView(cardBtn("清空说话风格档案") {
+        card2.addView(dangerBtn("清空说话风格档案") {
             clearStyleDialog(kbResult)
         })
-        card2.addView(cardBtn("清空知识库与历史") {
+        card2.addView(dangerBtn("清空知识库与历史") {
             val c = KbStore.get(this).counts()
             androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("清空知识库与历史")
@@ -616,6 +616,20 @@ class SettingsActivity : AppCompatActivity() {
         setPadding(dp(14), dp(10), dp(14), dp(10))
         layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(14) }
+        setOnClickListener { onClick() }
+    }
+
+    private fun dangerBtn(label: String, onClick: () -> Unit) = TextView(this).apply {
+        text = label; textSize = 13.5f; gravity = Gravity.CENTER
+        setTypeface(typeface, Typeface.BOLD)
+        setTextColor(Color.parseColor("#C24141"))
+        background = round(dp(10), Color.WHITE, stroke = true).apply {
+            setStroke(dp(1), Color.parseColor("#E7A4A4"))
+        }
+        setPadding(dp(14), dp(10), dp(14), dp(10))
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = dp(10) }
         setOnClickListener { onClick() }
     }
 

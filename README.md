@@ -4,7 +4,7 @@
 
 ## 当前版本
 
-- 版本：`1.5.0`
+- 版本：`1.5.1`
 - Android：最低 Android 11，当前构建仅包含 `arm64-v8a`
 - 维护者：[@yu821138652](https://github.com/yu821138652)
 - 项目仓库：[yu821138652/jevchat-yureon](https://github.com/yu821138652/jevchat-yureon)

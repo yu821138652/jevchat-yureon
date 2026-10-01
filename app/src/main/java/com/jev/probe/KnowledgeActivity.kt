@@ -296,7 +296,7 @@ class KnowledgeActivity : AppCompatActivity() {
         val title = contact?.name?.let { "面向$it · 说话风格" } ?: "全局说话风格"
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            background = round(dp(12), Color.parseColor("#F7F8FA"))
+            background = round(dp(12), Color.WHITE)
             setPadding(dp(16), dp(12), dp(16), dp(12))
         }
         body.addView(text(
