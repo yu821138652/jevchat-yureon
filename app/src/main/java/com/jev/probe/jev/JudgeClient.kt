@@ -57,7 +57,8 @@ class JudgeClient(private val prefs: Prefs) {
         continuation: Boolean = snapshot.latestFrom == "me"
     ): List<RankedReply> {
         val questions = JSONObject().put("best_reply",
-            JevQuestions.rankQuestion(candidates, continuation).getJSONObject("best_reply"))
+            JevQuestions.rankQuestion(candidates, continuation, ctx?.style != null)
+                .getJSONObject("best_reply"))
         val answers = postDecisions(snapshot, relationship, ctx, questions)
         return parseRanked(answers.optJSONObject("best_reply"), candidates)
     }

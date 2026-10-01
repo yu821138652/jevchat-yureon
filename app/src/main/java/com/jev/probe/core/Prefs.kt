@@ -128,6 +128,11 @@ class Prefs(context: Context, prefsName: String = PREFS_MAIN) {
         get() = sp.getBoolean(K_AUTO_SUMMARY, true)
         set(v) = sp.edit().putBoolean(K_AUTO_SUMMARY, v).apply()
 
+    /** Learn the user's wording from local outgoing-message samples. */
+    var styleLearning: Boolean
+        get() = sp.getBoolean(K_STYLE_LEARNING, true)
+        set(v) = sp.edit().putBoolean(K_STYLE_LEARNING, v).apply()
+
     // ------------------------------------------------------------ OCR (B)
 
     /** "mlkit" | "vision". */
@@ -249,6 +254,7 @@ class Prefs(context: Context, prefsName: String = PREFS_MAIN) {
         private const val K_CTX_COUNT = "context_history_count"
         private const val K_HISTORY_AUTO_UPDATE = "history_auto_update"
         private const val K_AUTO_SUMMARY = "auto_summary"
+        private const val K_STYLE_LEARNING = "style_learning"
         private const val K_OCR_ENGINE = "ocr_engine"
         private const val K_OCR_UNKNOWN = "ocr_unknown_apps"
         private const val K_OCR_FALLBACK = "ocr_fallback"

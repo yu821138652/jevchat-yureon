@@ -76,6 +76,7 @@ class OverlayController(private val ctx: Context) {
     /** How much knowledge context the last analysis actually used. */
     private var ctxNotes = 0
     private var ctxHistory = 0
+    private var ctxStyle = 0
 
     /** A caveat about how the current snapshot was captured (OCR mode). */
     private var noteText: String? = null
@@ -348,7 +349,7 @@ class OverlayController(private val ctx: Context) {
 
     fun showLoading() {
         ensureRoot(); bubble?.alpha = 1f
-        ctxNotes = 0; ctxHistory = 0   // counts for the round that is starting
+        ctxNotes = 0; ctxHistory = 0; ctxStyle = 0 // counts for the round that is starting
         historyInfo = null
         historyExpanded = false
         replyError = null              // this round has not failed (yet)
@@ -357,8 +358,8 @@ class OverlayController(private val ctx: Context) {
     }
 
     /** How many knowledge notes / history lines went into the pending analysis. */
-    fun setContextInfo(notes: Int, history: Int) {
-        ctxNotes = notes; ctxHistory = history
+    fun setContextInfo(notes: Int, history: Int, style: Int = 0) {
+        ctxNotes = notes; ctxHistory = history; ctxStyle = style
     }
 
     /** Exact per-contact history records included in the current model input. */
@@ -514,8 +515,8 @@ class OverlayController(private val ctx: Context) {
 
         // What context this read was based on (knowledge base / remembered history).
         views.add(hint(
-            if (ctxNotes == 0 && ctxHistory == 0) "未用知识库"
-            else "知识库 $ctxNotes 条 · 历史 $ctxHistory 条"))
+            if (ctxNotes == 0 && ctxHistory == 0 && ctxStyle == 0) "未用知识库"
+            else "知识库 $ctxNotes 条 · 历史 $ctxHistory 条 · 风格样本 $ctxStyle 条"))
 
         // How this snapshot was captured, when it changes how to read it.
         noteText?.let { if (it.isNotBlank()) views.add(hint(it)) }

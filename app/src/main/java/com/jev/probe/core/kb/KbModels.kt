@@ -45,6 +45,11 @@ data class Contact(
 /** One remembered chat line. side is "me" / "other", matching [com.jev.probe.core.Msg]. */
 data class LogEntry(val side: String, val text: String, val ts: Long, val app: String)
 
+/** Local examples used only to imitate the user's wording. */
+data class StyleProfile(val source: String, val examples: List<String>) {
+    fun isEmpty(): Boolean = examples.isEmpty()
+}
+
 fun LogEntry.timeLabel(): String =
     if (ts <= 0L) "时间未知"
     else SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault()).format(Date(ts))
@@ -56,11 +61,13 @@ fun LogEntry.timeLabel(): String =
 data class ChatContext(
     val contact: Contact?,
     val history: List<LogEntry>,
-    val notes: List<Note>
+    val notes: List<Note>,
+    val style: StyleProfile? = null
 ) {
 
     /** True when there is nothing extra to inject (then no field is sent at all). */
     fun isEmpty(): Boolean = history.isEmpty() && notes.isEmpty() &&
+        (style == null || style.isEmpty()) &&
         (contact == null || (contact.relationship.isBlank() &&
             contact.notes.isBlank() && contact.autoSummary.isBlank()))
 

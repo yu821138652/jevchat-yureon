@@ -289,6 +289,9 @@ class SettingsActivity : AppCompatActivity() {
         val historyAutoRow = toggleRow("自动更新联系人历史", prefs.historyAutoUpdate)
         card2.addView(historyAutoRow)
         card2.addView(text("建议先用悬浮球长按菜单的“预采集过去的历史”建立基础记录，确认无误后再开启。", 11f, sub))
+        val styleRow = toggleRow("学习我的说话方式（只存本机）", prefs.styleLearning)
+        card2.addView(styleRow)
+        card2.addView(text("只记录识别到的我方消息作为表达样本。联系人模式优先使用该联系人的样本；默认模式使用全局样本。不会改变风险判断。", 11f, sub))
         card2.addView(label("注入最近历史条数（0–100）"))
         val ctxCountEdit = edit(prefs.contextHistoryCount.toString(), "30").apply {
             inputType = InputType.TYPE_CLASS_NUMBER
@@ -384,6 +387,7 @@ class SettingsActivity : AppCompatActivity() {
             prefs.ocrAutoAnalyze = (ocrAutoRow.tag as? Boolean) ?: false
             prefs.contextEnabled = (ctxRow.tag as? Boolean) ?: false
             prefs.historyAutoUpdate = (historyAutoRow.tag as? Boolean) ?: false
+            prefs.styleLearning = (styleRow.tag as? Boolean) ?: true
             prefs.contextHistoryCount =
                 ctxCountEdit.text.toString().trim().toIntOrNull()?.coerceIn(0, 100) ?: 30
             prefs.overlayOpacity = seek.progress + 60

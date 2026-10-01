@@ -45,7 +45,7 @@ class ReplyClient(private val prefs: Prefs) {
         val sys = "你是中文即时通讯回复助手。$mode 只输出一个 JSON 数组，含且仅含 3 条候选回复文本，" +
             strategy +
             "每条不超过 40 字，口语、自然、像真人在聊天软件里发消息。不要解释，不要加引号以外的内容，直接输出 JSON 数组。"
-        val user = knowledgeBlock(relationship, ctx) +
+        val user = knowledgeBlock(relationship, ctx) + styleBlock(ctx) +
             "关系：$relationship\n\n最近对话：\n$convo\n\n$mode\n请给出 3 条候选回复。"
         return parseThree(chat(sys, user, temperature = 0.8))
     }
@@ -68,6 +68,17 @@ class ReplyClient(private val prefs: Prefs) {
         }
         sb.append('\n')
         return sb.toString()
+    }
+
+    /** Style is a wording hint only; it must never override safety or topic fit. */
+    private fun styleBlock(ctx: ChatContext?): String {
+        val style = ctx?.style ?: return ""
+        if (style.examples.isEmpty()) return ""
+        return buildString {
+            append("以下是我过去发出的少量消息，仅用于模仿我的表达习惯和语气，不要照抄：\n")
+            style.examples.takeLast(12).forEach { append("我：").append(it).append('\n') }
+            append("风格要求是次要要求：先保证风险判断、事实准确、尊重对方、承接当前话题和不自问自答，再尽量贴近这些表达习惯。\n\n")
+        }
     }
 
     /**

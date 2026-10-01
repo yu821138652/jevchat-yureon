@@ -203,7 +203,11 @@ object JevQuestions {
     }
 
     /** The best_reply ranking question over exactly 3 candidates (Chinese text kept). */
-    fun rankQuestion(candidates: List<String>, continuation: Boolean = false): JSONObject {
+    fun rankQuestion(
+        candidates: List<String>,
+        continuation: Boolean = false,
+        styleAvailable: Boolean = false
+    ): JSONObject {
         require(candidates.size == 3) { "rankQuestion expects exactly 3 candidates" }
         val keys = listOf("reply_a", "reply_b", "reply_c")
         val criteria = JSONObject()
@@ -224,11 +228,15 @@ object JevQuestions {
                 "If the facts are not yet confirmed, prefer the candidate that looks them up " +
                 "instead of faking memory or a vague apology."
         }
+        val styleGuidance = if (styleAvailable) {
+            " When candidates are otherwise equally safe and topic-appropriate, prefer the one with a more natural personal tone; " +
+                "never choose a riskier or less accurate candidate merely because its style is closer."
+        } else ""
         val q = JSONObject().apply {
             put("type", "choice")
             put("instructions",
                 instructions +
-                    rankingGuidance + BACKGROUND_NOTE)
+                    rankingGuidance + styleGuidance + BACKGROUND_NOTE)
             put("criteria", criteria)
         }
         return JSONObject().put("best_reply", q)

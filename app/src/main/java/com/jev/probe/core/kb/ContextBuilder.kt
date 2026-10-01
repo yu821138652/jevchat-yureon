@@ -59,7 +59,10 @@ object ContextBuilder {
         val alwaysOn = enabled.filter { it.alwaysOn }
         val hits = matchNotes(enabled.filter { !it.alwaysOn }, snapshot)
 
-        // 4. Budget: always-on notes are exempt; the rest share BUDGET_CHARS,
+        // 4. Style: contact samples take priority; global samples fill gaps.
+        val style = styleFor(store, contact)
+
+        // 5. Budget: always-on notes are exempt; the rest share BUDGET_CHARS,
         //    dropping oldest history first, then whole notes (never half a note).
         val trimmedHistory = ArrayList(history)
         val trimmedHits = ArrayList(hits)
@@ -70,7 +73,7 @@ object ContextBuilder {
 
         Log.d(TAG, "context: contact=${contact != null} notes=${alwaysOn.size + trimmedHits.size} " +
             "history=${trimmedHistory.size}")
-        return ChatContext(contact, trimmedHistory, alwaysOn + trimmedHits)
+        return ChatContext(contact, trimmedHistory, alwaysOn + trimmedHits, style)
     }
 
     /** Persist a newly recognized visible window immediately, before analysis. */
@@ -83,6 +86,37 @@ object ContextBuilder {
             LogEntry(it.side, it.text, now, app)
         })
         return contact
+    }
+
+    /** Learn only outgoing messages; [contactId] is null for global style. */
+    fun recordStyle(
+        context: Context,
+        snapshot: ChatSnapshot,
+        app: String,
+        contactId: String? = null,
+        globalOnly: Boolean = false
+    ) {
+        val store = KbStore.get(context)
+        val resolvedId = if (globalOnly) null
+        else contactId ?: store.findContact(snapshot.title.orEmpty(), app)?.id
+        store.appendStyle(resolvedId, snapshot.messages.filter { it.side == "me" }.map { it.text })
+    }
+
+    private fun styleFor(store: KbStore, contact: Contact?): StyleProfile? {
+        val storedScoped = store.styleExamples(contact?.id)
+        val historyScoped = contact?.let {
+            store.recentLog(it.id, KbStore.MAX_LOG)
+                .filter { entry -> entry.side == "me" }
+                .map { it.text }
+        }.orEmpty()
+        val scoped = (storedScoped + historyScoped.filter { it !in storedScoped })
+            .takeLast(MAX_STYLE_EXAMPLES)
+        val global = if (contact == null) emptyList() else store.styleExamples(null)
+        val examples = (scoped + global.filter { it !in scoped }).takeLast(MAX_STYLE_EXAMPLES)
+        return if (examples.isEmpty()) null else StyleProfile(
+            if (contact == null) "全局说话风格" else "联系人优先，全局补充",
+            examples
+        )
     }
 
     /**
@@ -141,4 +175,5 @@ object ContextBuilder {
             history.sumOf { it.text.length + 3 }
 
     private const val TAG = "JEVASSIST"
+    private const val MAX_STYLE_EXAMPLES = 12
 }

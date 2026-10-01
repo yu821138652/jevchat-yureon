@@ -29,8 +29,10 @@ class KbStore private constructor(context: Context) {
     private val root: File get() = File(app.filesDir, "kb")
     private val notesFile: File get() = File(root, "notes.json")
     private val contactsFile: File get() = File(root, "contacts.json")
+    private val globalStyleFile: File get() = File(root, "style-global.json")
     private fun logFile(contactId: String) = File(File(root, "logs"), "$contactId.json")
     private fun screenFile(contactId: String) = File(File(root, "logs"), "$contactId.screen.json")
+    private fun styleFile(contactId: String) = File(File(root, "styles"), "$contactId.json")
 
     private var notesCache: MutableList<Note>? = null
     private var contactsCache: MutableList<Contact>? = null
@@ -38,6 +40,25 @@ class KbStore private constructor(context: Context) {
 
     /** Per contact: the comparison keys of the last screen written. See [appendLog]. */
     private val lastScreenCache = HashMap<String, List<String>>()
+
+    /** Append distinct outgoing examples, retaining only the newest 24. */
+    fun appendStyle(contactId: String?, messages: List<String>): Boolean = synchronized(lock) {
+        val incoming = messages.map { it.trim() }.filter { it.isNotBlank() }.distinct()
+        if (incoming.isEmpty()) return@synchronized true
+        val file = contactId?.takeIf { it.isNotBlank() }?.let { styleFile(it) } ?: globalStyleFile
+        val existing = styleExamples(file).toMutableList()
+        incoming.forEach { text ->
+            existing.remove(text)
+            existing.add(text)
+        }
+        while (existing.size > MAX_STYLE_EXAMPLES) existing.removeAt(0)
+        writeAtomic(file, JSONArray(existing).toString())
+    }
+
+    fun styleExamples(contactId: String?): List<String> = synchronized(lock) {
+        val file = contactId?.takeIf { it.isNotBlank() }?.let { styleFile(it) } ?: globalStyleFile
+        styleExamples(file)
+    }
 
     // ------------------------------------------------------------------ notes
 
@@ -92,6 +113,7 @@ class KbStore private constructor(context: Context) {
         lastScreenCache.remove(id)
         runCatching { logFile(id).delete() }
         runCatching { screenFile(id).delete() }
+        runCatching { styleFile(id).delete() }
         ok
     }
 
@@ -370,6 +392,12 @@ class KbStore private constructor(context: Context) {
         return list
     }
 
+    private fun styleExamples(file: File): List<String> {
+        val loaded = readJsonArray(file)
+        val arr = loaded.arr ?: return emptyList()
+        return (0 until arr.length()).mapNotNull { arr.optString(it).trim().takeIf { s -> s.isNotBlank() } }
+    }
+
     private fun loadContacts(): MutableList<Contact> {
         contactsCache?.let { return it }
         val list = ArrayList<Contact>()
@@ -528,6 +556,7 @@ class KbStore private constructor(context: Context) {
     private fun key(side: String, text: String) = side + "\u0000" + text
 
     companion object {
+        const val MAX_STYLE_EXAMPLES = 24
         private const val TAG = "JEVASSIST"
         const val MAX_LOG = 300
 
