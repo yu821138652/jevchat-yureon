@@ -97,9 +97,14 @@ object ContextBuilder {
         globalOnly: Boolean = false
     ) {
         val store = KbStore.get(context)
-        val resolvedId = if (globalOnly) null
-        else contactId ?: store.findContact(snapshot.title.orEmpty(), app)?.id
-        store.appendStyle(resolvedId, snapshot.messages.filter { it.side == "me" }.map { it.text })
+        val outgoing = snapshot.messages.filter { it.side == "me" }.map { it.text }
+        // The global profile learns from every conversation. A selected contact
+        // additionally receives the same messages in its scoped profile.
+        store.appendStyle(null, outgoing)
+        if (!globalOnly) {
+            val resolvedId = contactId ?: store.findContact(snapshot.title.orEmpty(), app)?.id
+            if (!resolvedId.isNullOrBlank()) store.appendStyle(resolvedId, outgoing)
+        }
     }
 
     private fun styleFor(store: KbStore, contact: Contact?): StyleProfile? {
