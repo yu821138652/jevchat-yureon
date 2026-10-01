@@ -80,6 +80,7 @@ open class ChatCaptureService : AccessibilityService() {
     private var foregroundPkg: String? = null
     /** Explicit identity selected by the user; never inferred from WeChat UI text. */
     private var selectedContact: com.jev.probe.core.kb.Contact? = null
+    private var defaultContextSelected = false
     private var historyImporting = false
     private val enabledReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -127,6 +128,7 @@ open class ChatCaptureService : AccessibilityService() {
         }
         overlay?.onContactSelected = { contact ->
             selectedContact = contact
+            defaultContextSelected = false
             val snapshot = currentSnapshot
             if (snapshot == null) {
                 val pkg = rootInActiveWindow?.packageName?.toString() ?: foregroundPkg ?: activePkg ?: ""
@@ -149,6 +151,19 @@ open class ChatCaptureService : AccessibilityService() {
                 overlay?.setConversationInfo(corrected.title, corrected.latestFrom == "me")
                 overlay?.showContactHistory(contact, KbStore.get(this).allLog(contact.id))
             }
+        }
+        overlay?.onDefaultSelected = {
+            val pkg = activePkg ?: foregroundPkg ?: ""
+            selectedContact = null
+            defaultContextSelected = true
+            manualTitleOverrides.remove(pkg)
+            lastSignature = ""
+            val snapshot = currentSnapshot ?: run {
+                val root = rootInActiveWindow
+                val raw = root?.packageName?.toString()?.let { adapters[it]?.extract(root, resources) }
+                raw?.also { currentSnapshot = it }
+            }
+            overlay?.showDefaultContext(snapshot?.title)
         }
         // Bubble menu: file the open conversation as a knowledge-base contact.
         // Contacts are never created automatically — this is the one-tap way in.
@@ -231,6 +246,7 @@ open class ChatCaptureService : AccessibilityService() {
             // A manual contact choice belongs to one foreground chat app.
             // Never carry a WeChat selection into another app's conversation.
             selectedContact = null
+            defaultContextSelected = false
         }
         // Apps with no adapter are never handled automatically (v1.3 revision):
         // the only way in for them is the bubble menu's "截屏识别一次".
@@ -261,7 +277,7 @@ open class ChatCaptureService : AccessibilityService() {
         // A missing title is intentional for WeChat: the user may use the
         // configured default relationship or choose a contact manually. It
         // must not be rejected by a title whitelist before analysis starts.
-        if (identified.title != null && !prefs.isAllowed(identified.title)) {
+        if (!defaultContextSelected && identified.title != null && !prefs.isAllowed(identified.title)) {
             main.post { overlay?.showIdle(identified.title, identified.latestFrom == "me") }
             return
         }
@@ -308,7 +324,7 @@ open class ChatCaptureService : AccessibilityService() {
         // Save as soon as a new visible window is recognized. This keeps the
         // per-contact log current even when auto-analysis is disabled or the
         // same screen is later deduplicated.
-        if (prefs.historyAutoUpdate) submit { runCatching {
+        if (prefs.historyAutoUpdate && !defaultContextSelected) submit { runCatching {
             ContextBuilder.recordVisible(this, identified, pkg ?: "")
         } }
         if (!identified.atLatest) {
@@ -406,7 +422,7 @@ open class ChatCaptureService : AccessibilityService() {
         // the analysis — it just means no extra context this round.
         submit {
             val ctx = try {
-                ContextBuilder.build(this, snapshot, pkg, prefs)
+                ContextBuilder.build(this, snapshot, pkg, prefs, useContactHistory = !defaultContextSelected)
             } catch (e: Exception) {
                 Log.w(TAG, "context build failed: ${e.javaClass.simpleName}"); null
             }
@@ -713,7 +729,7 @@ open class ChatCaptureService : AccessibilityService() {
             if (manual) overlay?.showError("这一屏没认出文字")
             return
         }
-        if (snapshot.title != null && !prefs.isAllowed(snapshot.title)) {
+        if (!defaultContextSelected && snapshot.title != null && !prefs.isAllowed(snapshot.title)) {
             overlay?.showIdle(snapshot.title, snapshot.latestFrom == "me")
             return
         }
@@ -721,7 +737,7 @@ open class ChatCaptureService : AccessibilityService() {
         if (pkg.isNotEmpty() && pkg != activePkg) { activePkg = pkg; lastSignature = "" }
         currentSnapshot = snapshot
         overlay?.setRecognitionInfo(if (manual) "手动 OCR" else "自动 OCR", snapshot.messages)
-        if (prefs.historyAutoUpdate) submit { runCatching {
+        if (prefs.historyAutoUpdate && !defaultContextSelected) submit { runCatching {
             ContextBuilder.recordVisible(this, snapshot, pkg)
         } }
         val sig = snapshot.signature()
@@ -840,6 +856,7 @@ open class ChatCaptureService : AccessibilityService() {
         // never call back into this dead instance.
         overlay?.onManualAnalyze = null
         overlay?.onContactSelected = null
+        overlay?.onDefaultSelected = null
         overlay?.onListContacts = null
         overlay?.onDisable = null
         overlay?.onSaveContact = null

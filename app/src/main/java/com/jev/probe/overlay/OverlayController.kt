@@ -53,6 +53,9 @@ class OverlayController(private val ctx: Context) {
     /** Contact selected when automatic title extraction is wrong or missing. */
     var onContactSelected: ((Contact) -> Unit)? = null
 
+    /** Select the one-off mode without any contact history. */
+    var onDefaultSelected: (() -> Unit)? = null
+
     /** Supplies all contacts already stored in the local knowledge base. */
     var onListContacts: (() -> List<Contact>)? = null
 
@@ -396,6 +399,18 @@ class OverlayController(private val ctx: Context) {
         if (!expanded) toggle()
     }
 
+    /** Show the one-off analysis mode without binding this chat to a contact. */
+    fun showDefaultContext(title: String?) {
+        selectedContact = null
+        selectedHistory = emptyList()
+        historyImportRunning = false
+        choosingContact = false
+        setConversationInfo(title, false)
+        ensureRoot()
+        setContent(captureInfoViews() + defaultContextViews())
+        if (!expanded) toggle()
+    }
+
     fun setHistoryImportProgress(contact: Contact, history: List<LogEntry>, pages: Int, running: Boolean) {
         selectedContact = contact
         selectedHistory = history
@@ -647,18 +662,35 @@ class OverlayController(private val ctx: Context) {
 
     private fun contactChooser(): List<View> {
         val contacts = onListContacts?.invoke().orEmpty().sortedBy { it.name.lowercase() }
-        if (contacts.isEmpty()) return listOf(
-            hint("知识库中还没有联系人"),
-            smallAction("返回标题") { choosingContact = false; setContent(captureInfoViews()) }
-        )
-        val views = ArrayList<View>(contacts.size + 1)
-        views.add(hint("选择知识库联系人"))
+        val views = ArrayList<View>(contacts.size + 2)
+        views.add(hint("选择知识库联系人，或使用默认模式"))
+        views.add(defaultChoice())
         contacts.forEach { contact ->
             views.add(contactChoice(contact))
         }
+        if (contacts.isEmpty()) views.add(hint("知识库中还没有联系人"))
         views.add(smallAction("取消") { choosingContact = false; setContent(captureInfoViews()) })
         return views
     }
+
+    private fun defaultChoice() = TextView(ctx).apply {
+        text = "默认（不使用联系人历史）"
+        textSize = 13f
+        setTextColor(Color.parseColor("#111827"))
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(dp(10), dp(8), dp(10), dp(8))
+        background = card(8, Color.WHITE, stroke = true)
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = dp(5) }
+        setOnClickListener { onDefaultSelected?.invoke() }
+    }
+
+    private fun defaultContextViews(): List<View> = listOf(
+        hint("默认模式：不使用联系人历史"),
+        hint("本次分析只使用当前识别到的对话和全局设置，不读取或保存联系人历史"),
+        bigButton("分析当前对话") { onManualAnalyze?.invoke() }
+    )
 
     private fun contactChoice(contact: Contact) = TextView(ctx).apply {
         text = if (contact.aliases.isEmpty()) contact.name
