@@ -41,23 +41,48 @@ class KbStore private constructor(context: Context) {
     /** Per contact: the comparison keys of the last screen written. See [appendLog]. */
     private val lastScreenCache = HashMap<String, List<String>>()
 
-    /** Append distinct outgoing examples, retaining only the newest 24. */
-    fun appendStyle(contactId: String?, messages: List<String>): Boolean = synchronized(lock) {
-        val incoming = messages.map { it.trim() }.filter { it.isNotBlank() }.distinct()
-        if (incoming.isEmpty()) return@synchronized true
+    /** Save one synthesized style description, replacing the previous one. */
+    fun saveStyleProfile(contactId: String?, profile: StyleProfile): Boolean = synchronized(lock) {
         val file = contactId?.takeIf { it.isNotBlank() }?.let { styleFile(it) } ?: globalStyleFile
-        val existing = styleExamples(file).toMutableList()
-        incoming.forEach { text ->
-            existing.remove(text)
-            existing.add(text)
-        }
-        while (existing.size > MAX_STYLE_EXAMPLES) existing.removeAt(0)
-        writeAtomic(file, JSONArray(existing).toString())
+        writeAtomic(file, JSONObject()
+            .put("source", profile.source)
+            .put("summary", profile.summary.trim())
+            .put("updatedAt", System.currentTimeMillis())
+            .toString())
     }
 
-    fun styleExamples(contactId: String?): List<String> = synchronized(lock) {
+    fun styleProfile(contactId: String?): StyleProfile? = synchronized(lock) {
         val file = contactId?.takeIf { it.isNotBlank() }?.let { styleFile(it) } ?: globalStyleFile
-        styleExamples(file)
+        readStyleProfile(file)
+    }
+
+    /** Legacy raw samples are available only as input to the first synthesis. */
+    fun legacyStyleExamples(contactId: String?): List<String> = synchronized(lock) {
+        val file = contactId?.takeIf { it.isNotBlank() }?.let { styleFile(it) } ?: globalStyleFile
+        val loaded = readJsonArray(file)
+        loaded.arr?.let { arr ->
+            (0 until arr.length()).mapNotNull { arr.optString(it).trim().takeIf { s -> s.isNotBlank() } }
+        } ?: emptyList()
+    }
+
+    fun outgoingMessages(contactId: String?): List<String> = synchronized(lock) {
+        if (contactId != null) {
+            loadLog(contactId).filter { it.side == "me" }.map { it.text }
+        } else {
+            loadContacts().flatMap { c -> loadLog(c.id).filter { it.side == "me" }.map { it.text } }
+        }
+    }
+
+    fun clearStyleProfile(contactId: String?) = synchronized(lock) {
+        val file = contactId?.takeIf { it.isNotBlank() }?.let { styleFile(it) } ?: globalStyleFile
+        runCatching { file.delete() }
+        Unit
+    }
+
+    fun clearAllStyleProfiles() = synchronized(lock) {
+        runCatching { globalStyleFile.delete() }
+        runCatching { File(root, "styles").deleteRecursively() }
+        Unit
     }
 
     // ------------------------------------------------------------------ notes
@@ -392,10 +417,17 @@ class KbStore private constructor(context: Context) {
         return list
     }
 
-    private fun styleExamples(file: File): List<String> {
-        val loaded = readJsonArray(file)
-        val arr = loaded.arr ?: return emptyList()
-        return (0 until arr.length()).mapNotNull { arr.optString(it).trim().takeIf { s -> s.isNotBlank() } }
+    private fun readStyleProfile(file: File): StyleProfile? {
+        if (!file.exists()) return null
+        return runCatching {
+            val text = file.readText(Charsets.UTF_8)
+            val obj = JSONObject(text)
+            StyleProfile(
+                source = obj.optString("source", "").ifBlank { "本地风格" },
+                summary = obj.optString("summary", ""),
+                updatedAt = obj.optLong("updatedAt", 0L)
+            ).takeIf { it.summary.isNotBlank() }
+        }.getOrNull()
     }
 
     private fun loadContacts(): MutableList<Contact> {
@@ -556,7 +588,6 @@ class KbStore private constructor(context: Context) {
     private fun key(side: String, text: String) = side + "\u0000" + text
 
     companion object {
-        const val MAX_STYLE_EXAMPLES = 24
         private const val TAG = "JEVASSIST"
         const val MAX_LOG = 300
 

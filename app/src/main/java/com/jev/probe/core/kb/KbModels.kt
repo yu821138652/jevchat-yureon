@@ -45,9 +45,13 @@ data class Contact(
 /** One remembered chat line. side is "me" / "other", matching [com.jev.probe.core.Msg]. */
 data class LogEntry(val side: String, val text: String, val ts: Long, val app: String)
 
-/** Local examples used only to imitate the user's wording. */
-data class StyleProfile(val source: String, val examples: List<String>) {
-    fun isEmpty(): Boolean = examples.isEmpty()
+/** A deliberately synthesized local description of the user's wording. */
+data class StyleProfile(
+    val source: String,
+    val summary: String,
+    val updatedAt: Long = System.currentTimeMillis()
+) {
+    fun isEmpty(): Boolean = summary.isBlank()
 }
 
 fun LogEntry.timeLabel(): String =

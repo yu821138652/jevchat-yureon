@@ -291,7 +291,7 @@ class SettingsActivity : AppCompatActivity() {
         card2.addView(text("建议先用悬浮球长按菜单的“预采集过去的历史”建立基础记录，确认无误后再开启。", 11f, sub))
         val styleRow = toggleRow("学习我的说话方式（只存本机）", prefs.styleLearning)
         card2.addView(styleRow)
-        card2.addView(text("只记录识别到的我方消息作为表达样本。联系人模式优先使用该联系人的样本；默认模式使用全局样本。不会改变风险判断。", 11f, sub))
+        card2.addView(text("风格不会自动记录原始样本。主动合成时，会结合已有风格档案和本机保存的我方聊天历史生成一段风格描述。不会改变风险判断。", 11f, sub))
         card2.addView(label("注入最近历史条数（0–100）"))
         val ctxCountEdit = edit(prefs.contextHistoryCount.toString(), "30").apply {
             inputType = InputType.TYPE_CLASS_NUMBER
@@ -301,6 +301,20 @@ class SettingsActivity : AppCompatActivity() {
             startActivity(android.content.Intent(this, KnowledgeActivity::class.java))
         })
         val kbResult = resultText()
+        card2.addView(cardBtn("主动合成/更新全局说话风格") {
+            synthesizeGlobalStyle(kbResult)
+        })
+        card2.addView(cardBtn("查看当前全局说话风格") {
+            val profile = KbStore.get(this).styleProfile(null)
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("全局说话风格")
+                .setMessage(profile?.summary ?: "还没有合成全局风格档案。")
+                .setPositiveButton("关闭", null)
+                .show()
+        })
+        card2.addView(cardBtn("清空说话风格档案") {
+            clearStyleDialog(kbResult)
+        })
         card2.addView(cardBtn("清空知识库与历史") {
             val c = KbStore.get(this).counts()
             androidx.appcompat.app.AlertDialog.Builder(this)
@@ -401,6 +415,51 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var judgeKeyEdit: EditText
     private lateinit var replyKeyEdit: EditText
     private lateinit var visionKeyEdit: EditText
+
+    private fun synthesizeGlobalStyle(result: TextView) {
+        val store = KbStore.get(this)
+        val messages = store.outgoingMessages(null) + store.legacyStyleExamples(null)
+        if (messages.isEmpty()) {
+            result.text = "没有可用于合成的我方聊天历史"
+            return
+        }
+        result.text = "正在合成全局说话风格…"
+        worker.execute {
+            val previous = store.styleProfile(null)?.summary.orEmpty()
+            val generated = runCatching { ReplyClient(prefs).synthesizeStyle(messages, previous) }
+                .getOrDefault("")
+            val ok = generated.isNotBlank() && store.saveStyleProfile(
+                null,
+                com.jev.probe.core.kb.StyleProfile("全局说话风格", generated)
+            )
+            main.post { result.text = if (ok) "全局说话风格已合成并保存" else "合成失败，请检查回复接口配置" }
+        }
+    }
+
+    private fun clearStyleDialog(result: TextView) {
+        val store = KbStore.get(this)
+        val contacts = store.contacts()
+        val options = arrayOf("清空全局风格", "清空所有联系人风格", "清空全部风格档案")
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("选择清空方式")
+            .setItems(options) { _, which ->
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("确认清空")
+                    .setMessage("此操作不可恢复，聊天历史不会受到影响。")
+                    .setPositiveButton("清空") { _, _ ->
+                        when (which) {
+                            0 -> store.clearStyleProfile(null)
+                            1 -> contacts.forEach { store.clearStyleProfile(it.id) }
+                            else -> store.clearAllStyleProfiles()
+                        }
+                        result.text = "说话风格档案已清空"
+                    }
+                    .setNegativeButton("取消", null)
+                    .show()
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
 
     private fun providerOf(idx: Int) = when (idx) {
         1 -> Prefs.PROVIDER_TYPESAFE

@@ -521,7 +521,7 @@ class OverlayController(private val ctx: Context) {
         // What context this read was based on (knowledge base / remembered history).
         views.add(hint(
             if (ctxNotes == 0 && ctxHistory == 0 && ctxStyle == 0) "未用知识库"
-            else "知识库 $ctxNotes 条 · 历史 $ctxHistory 条 · 风格样本 $ctxStyle 条"))
+            else "知识库 $ctxNotes 条 · 历史 $ctxHistory 条 · 风格档案 $ctxStyle 份"))
 
         // How this snapshot was captured, when it changes how to read it.
         noteText?.let { if (it.isNotBlank()) views.add(hint(it)) }

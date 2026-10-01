@@ -327,9 +327,6 @@ open class ChatCaptureService : AccessibilityService() {
         if (prefs.historyAutoUpdate && !defaultContextSelected) submit { runCatching {
             ContextBuilder.recordVisible(this, identified, pkg ?: "")
         } }
-        if (prefs.styleLearning) submit { runCatching {
-            ContextBuilder.recordStyle(this, identified, pkg ?: "", selectedContact?.id, globalOnly = defaultContextSelected)
-        } }
         if (!identified.atLatest) {
             // The user is looking at older messages. They are useful for
             // building the contact's local history, but must never be treated
@@ -433,7 +430,7 @@ open class ChatCaptureService : AccessibilityService() {
                 overlay?.setContextInfo(
                     ctx?.notes?.size ?: 0,
                     ctx?.history?.size ?: 0,
-                    ctx?.style?.examples?.size ?: 0
+                    if (ctx?.style?.isEmpty() == false) 1 else 0
                 )
                 overlay?.setHistoryInfo(ctx?.history ?: emptyList(), snapshot.messages)
             }
@@ -746,9 +743,6 @@ open class ChatCaptureService : AccessibilityService() {
         overlay?.setRecognitionInfo(if (manual) "手动 OCR" else "自动 OCR", snapshot.messages)
         if (prefs.historyAutoUpdate && !defaultContextSelected) submit { runCatching {
             ContextBuilder.recordVisible(this, snapshot, pkg)
-        } }
-        if (prefs.styleLearning) submit { runCatching {
-            ContextBuilder.recordStyle(this, snapshot, pkg, selectedContact?.id, globalOnly = defaultContextSelected)
         } }
         val sig = snapshot.signature()
         // Manual taps always re-run; the automatic path dedupes like the tree path.

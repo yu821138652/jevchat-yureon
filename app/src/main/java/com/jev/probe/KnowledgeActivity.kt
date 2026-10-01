@@ -19,6 +19,9 @@ import androidx.appcompat.app.AppCompatActivity
 import com.jev.probe.core.kb.Contact
 import com.jev.probe.core.kb.KbStore
 import com.jev.probe.core.kb.Note
+import com.jev.probe.core.Prefs
+import com.jev.probe.jev.ReplyClient
+import java.util.concurrent.Executors
 import kotlin.math.roundToInt
 
 /**
@@ -33,6 +36,7 @@ class KnowledgeActivity : AppCompatActivity() {
 
     private lateinit var store: KbStore
     private lateinit var container: LinearLayout
+    private val worker = Executors.newSingleThreadExecutor()
 
     /** 0 = notes, 1 = contacts. */
     private var tab = 0
@@ -70,6 +74,7 @@ class KnowledgeActivity : AppCompatActivity() {
         container.addView(text("只存在本机，不上传。分析时按会话标题匹配联系人、按关键词命中笔记。",
             12f, sub).apply { setPadding(0, dp(6), 0, dp(4)) })
         container.addView(tabs())
+        container.addView(smallAction("主动合成/更新全局说话风格") { synthesizeStyle(null) })
         container.addView(smallAction("查看全局说话风格") { styleDialog(null) })
         if (tab == 0) renderNotes() else renderContacts()
     }
@@ -269,12 +274,13 @@ class KnowledgeActivity : AppCompatActivity() {
         }
         c.addView(inspect)
         val styleInspect = TextView(this).apply {
-            text = "查看此人说话风格样本（${store.styleExamples(c0.id).size} 条）"
+            text = "查看此人说话风格档案"
             textSize = 12.5f; setTextColor(accent); setTypeface(typeface, Typeface.BOLD)
             setPadding(0, dp(8), 0, dp(2))
             setOnClickListener { styleDialog(c0) }
         }
         c.addView(styleInspect)
+        c.addView(smallAction("主动合成/更新此人风格") { synthesizeStyle(c0) })
         c.setOnClickListener { editContactDialog(c0) }
         c.setOnLongClickListener {
             confirm("删除联系人", "删除「${c0.name}」及其全部历史？不可恢复。") {
@@ -286,20 +292,20 @@ class KnowledgeActivity : AppCompatActivity() {
     }
 
     private fun styleDialog(contact: Contact?) {
-        val examples = store.styleExamples(contact?.id)
-        val title = contact?.name?.let { "$it · 说话风格样本" } ?: "全局 · 说话风格样本"
+        val profile = store.styleProfile(contact?.id)
+        val title = contact?.name?.let { "$it · 说话风格" } ?: "全局 · 说话风格"
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(8), dp(18), dp(8))
         }
         body.addView(text(
-            if (examples.isEmpty()) "还没有采集到我方消息样本。开启设置中的说话方式学习后，在聊天中识别到我方消息即可积累。"
-            else "共 ${examples.size} 条。样本只用于候选回复的表达参考，不会改变风险判断。",
+            if (profile == null) "还没有合成风格档案。请先点击主动合成，并确保本地已有我方聊天历史。"
+            else "已合成一份本地风格档案，只用于候选回复的表达参考，不会改变风险判断。",
             12f, sub
         ).apply { setPadding(0, 0, 0, dp(8)) })
-        examples.forEachIndexed { index, sample ->
-            body.addView(text("${index + 1}. $sample", 13f, ink).apply {
-                setPadding(0, dp(5), 0, dp(5))
+        profile?.summary?.let { summary ->
+            body.addView(text(summary, 14f, ink).apply {
+                setPadding(0, dp(8), 0, dp(8))
             })
         }
         val scroll = ScrollView(this).apply {
@@ -311,6 +317,31 @@ class KnowledgeActivity : AppCompatActivity() {
             .setView(scroll)
             .setPositiveButton("关闭", null)
             .show()
+    }
+
+    private fun synthesizeStyle(contact: Contact?) {
+        val messages = store.outgoingMessages(contact?.id) + store.legacyStyleExamples(contact?.id)
+        if (messages.isEmpty()) {
+            toast("没有可用于合成的我方聊天历史")
+            return
+        }
+        toast("正在合成说话风格…")
+        worker.execute {
+            val old = store.styleProfile(contact?.id)?.summary.orEmpty()
+            val result = runCatching { ReplyClient(Prefs(this)).synthesizeStyle(messages, old) }
+                .getOrDefault("")
+            val ok = result.isNotBlank() && store.saveStyleProfile(
+                contact?.id,
+                com.jev.probe.core.kb.StyleProfile(
+                    if (contact == null) "全局说话风格" else "${contact.name}的说话风格",
+                    result
+                )
+            )
+            runOnUiThread {
+                toast(if (ok) "说话风格已合成并保存" else "风格合成失败，请检查回复接口配置")
+                if (ok) render()
+            }
+        }
     }
 
     private fun historyDialog(contact: Contact) {

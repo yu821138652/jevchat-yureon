@@ -60,7 +60,7 @@ object ContextBuilder {
         val hits = matchNotes(enabled.filter { !it.alwaysOn }, snapshot)
 
         // 4. Style: contact samples take priority; global samples fill gaps.
-        val style = styleFor(store, contact)
+        val style = if (prefs.styleLearning) styleFor(store, contact) else null
 
         // 5. Budget: always-on notes are exempt; the rest share BUDGET_CHARS,
         //    dropping oldest history first, then whole notes (never half a note).
@@ -88,40 +88,9 @@ object ContextBuilder {
         return contact
     }
 
-    /** Learn only outgoing messages; [contactId] is null for global style. */
-    fun recordStyle(
-        context: Context,
-        snapshot: ChatSnapshot,
-        app: String,
-        contactId: String? = null,
-        globalOnly: Boolean = false
-    ) {
-        val store = KbStore.get(context)
-        val outgoing = snapshot.messages.filter { it.side == "me" }.map { it.text }
-        // The global profile learns from every conversation. A selected contact
-        // additionally receives the same messages in its scoped profile.
-        store.appendStyle(null, outgoing)
-        if (!globalOnly) {
-            val resolvedId = contactId ?: store.findContact(snapshot.title.orEmpty(), app)?.id
-            if (!resolvedId.isNullOrBlank()) store.appendStyle(resolvedId, outgoing)
-        }
-    }
-
     private fun styleFor(store: KbStore, contact: Contact?): StyleProfile? {
-        val storedScoped = store.styleExamples(contact?.id)
-        val historyScoped = contact?.let {
-            store.recentLog(it.id, KbStore.MAX_LOG)
-                .filter { entry -> entry.side == "me" }
-                .map { it.text }
-        }.orEmpty()
-        val scoped = (storedScoped + historyScoped.filter { it !in storedScoped })
-            .takeLast(MAX_STYLE_EXAMPLES)
-        val global = if (contact == null) emptyList() else store.styleExamples(null)
-        val examples = (scoped + global.filter { it !in scoped }).takeLast(MAX_STYLE_EXAMPLES)
-        return if (examples.isEmpty()) null else StyleProfile(
-            if (contact == null) "全局说话风格" else "联系人优先，全局补充",
-            examples
-        )
+        val profile = contact?.let { store.styleProfile(it.id) } ?: store.styleProfile(null)
+        return profile?.takeIf { !it.isEmpty() }
     }
 
     /**

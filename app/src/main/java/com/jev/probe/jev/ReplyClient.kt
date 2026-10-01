@@ -73,12 +73,26 @@ class ReplyClient(private val prefs: Prefs) {
     /** Style is a wording hint only; it must never override safety or topic fit. */
     private fun styleBlock(ctx: ChatContext?): String {
         val style = ctx?.style ?: return ""
-        if (style.examples.isEmpty()) return ""
+        if (style.summary.isBlank()) return ""
         return buildString {
-            append("以下是我过去发出的少量消息，仅用于模仿我的表达习惯和语气，不要照抄：\n")
-            style.examples.takeLast(12).forEach { append("我：").append(it).append('\n') }
-            append("风格要求是次要要求：先保证风险判断、事实准确、尊重对方、承接当前话题和不自问自答，再尽量贴近这些表达习惯。\n\n")
+            append("以下是根据我过去消息主动综合出的说话风格档案：\n")
+            append(style.summary).append('\n')
+            append("风格要求是次要要求：先保证风险判断、事实准确、尊重对方、承接当前话题和不自问自答，再尽量贴近这份风格档案。\n\n")
         }
+    }
+
+    /** Synthesize a compact wording profile from local outgoing-message history. */
+    fun synthesizeStyle(messages: List<String>, previous: String = ""): String {
+        val cleaned = messages.map { it.trim() }.filter { it.isNotBlank() }.takeLast(120)
+        if (cleaned.isEmpty() && previous.isBlank()) return ""
+        val old = if (previous.isBlank()) "无" else previous.trim()
+        val source = cleaned.mapIndexed { i, text -> "${i + 1}. $text" }.joinToString("\n")
+        val sys = "你是中文聊天风格分析助手。请综合用户过去自己发送的消息，写一份简洁、可执行的说话风格档案，" +
+            "用于帮助另一个模型模仿用户表达。只描述表达习惯，不评价人格，不推断隐私，不编造样本。" +
+            "重点包括：句子长短、语气、常用语、标点和表情习惯、直接程度、主动程度、面对不同话题的变化。" +
+            "如果提供了旧档案，请在其基础上结合新消息修正。输出不超过 260 字的纯文本，不要标题，不要解释。"
+        val user = "旧的风格档案：\n$old\n\n本次用于综合的我方历史消息：\n$source"
+        return chat(sys, user, temperature = 0.2).trim().take(1000)
     }
 
     /**
