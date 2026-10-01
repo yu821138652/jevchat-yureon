@@ -80,6 +80,7 @@ class OverlayController(private val ctx: Context) {
     private var noteText: String? = null
     private var recognitionInfo: String? = null
     private var historyInfo: String? = null
+    private var historyExpanded = false
 
     /** Current title and sender mode, shown for on-device verification. */
     private var conversationTitle: String? = null
@@ -344,6 +345,7 @@ class OverlayController(private val ctx: Context) {
         conversationTitle = null
         continuationMode = false
         historyInfo = null
+        historyExpanded = false
         contentBox?.removeAllViews()
     }
 
@@ -360,6 +362,8 @@ class OverlayController(private val ctx: Context) {
     fun showLoading() {
         ensureRoot(); bubble?.alpha = 1f
         ctxNotes = 0; ctxHistory = 0   // counts for the round that is starting
+        historyInfo = null
+        historyExpanded = false
         replyError = null              // this round has not failed (yet)
         setContent(captureInfoViews() + listOf(hint("分析中…")))
         if (!expanded) toggle()
@@ -385,6 +389,7 @@ class OverlayController(private val ctx: Context) {
                     .append(item.text).append('\n')
             }
         }.trim()
+        historyExpanded = false
     }
 
     /** Show the selected contact's local history before any analysis starts. */
@@ -528,7 +533,22 @@ class OverlayController(private val ctx: Context) {
         // How this snapshot was captured, when it changes how to read it.
         noteText?.let { if (it.isNotBlank()) views.add(hint(it)) }
         recognitionInfo?.let { if (it.isNotBlank()) views.add(hint(it)) }
-        historyInfo?.let { if (it.isNotBlank()) views.add(hint(it)) }
+        historyInfo?.let { info ->
+            if (info.isNotBlank()) {
+                val summary = info.substringBefore('\n')
+                views.add(hint(summary))
+                views.add(smallAction(
+                    if (historyExpanded) "收起当前注入上下文" else "查看当前注入上下文"
+                ) {
+                    historyExpanded = !historyExpanded
+                    lastJudgment?.let { render(it, generating) }
+                })
+                if (historyExpanded) {
+                    val detail = info.substringAfter('\n', "")
+                    if (detail.isNotBlank()) views.add(hint(detail))
+                }
+            }
+        }
 
         if (a.continuation) {
             views.add(hint("最近一条是我发出的；这里只生成接着当前话题的下一句"))
