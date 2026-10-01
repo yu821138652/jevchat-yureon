@@ -2,6 +2,10 @@
 /build/
 /app/build/
 .gradle/
+/android-sdk/
+/gradle-home/
+/gradle-home-clean/
+/platform-tools/
 *.apk
 *.ap_
 *.dex
