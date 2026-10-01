@@ -116,7 +116,7 @@ object HttpJson {
     /** OpenRouter wants attribution headers; other hosts reject unknown ones politely. */
     fun headersFor(url: String): Map<String, String> =
         if (url.contains("openrouter.ai", ignoreCase = true))
-            mapOf("HTTP-Referer" to "https://github.com/yu821138652/jevchat-yureon", "X-Title" to "jevchat (Yureon)")
+            mapOf("HTTP-Referer" to "https://github.com/yu821138652/jevchat-yureon", "X-Title" to "GalMagan")
         else emptyMap()
 
     /** Human-readable transport failures (no key material ever appears here). */

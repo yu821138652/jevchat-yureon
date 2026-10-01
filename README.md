@@ -1,6 +1,6 @@
-# jevchat (Yureon)
+# GalMagan
 
-个人维护的 Android 聊天辅助项目，基于 Jev Chat Assistant 二次开发，主要用于荣耀 Magic 系列手机上的微信和小红书测试。
+个人维护的 Android 聊天辅助项目，基于上游项目二次开发，主要用于荣耀 Magic 系列手机上的微信和小红书测试。
 
 ## 当前版本
 
@@ -57,6 +57,6 @@
 
 ## 上游出处与许可证
 
-本项目基于 [Finderchangchang/jev-chat-JARVIS](https://github.com/Finderchangchang/jev-chat-JARVIS) 二次开发。上游版权、许可证和再分发要求见 [NOTICE](NOTICE) 与 [LICENSE](LICENSE)。本项目不代表上游作者，也不与上游项目存在官方从属关系。
+本项目 GalMagan 基于 [Finderchangchang/jev-chat-JARVIS](https://github.com/Finderchangchang/jev-chat-JARVIS) 二次开发。上游版权、许可证和再分发要求见 [NOTICE](NOTICE) 与 [LICENSE](LICENSE)。本项目不代表上游作者，也不与上游项目存在官方从属关系。
 
 本项目仅作为个人维护版本发布，使用者应自行遵守聊天应用、模型服务商和当地法律法规的要求。

@@ -1,6 +1,6 @@
 # 文档说明
 
-本目录保存 `jevchat（Yureon）` 个人 Android 项目的补充资料。
+本目录保存 GalMagan 个人 Android 项目的补充资料。
 
 - `images/`：项目界面和测试场景图片。
 - 本项目当前只维护 Android 版本，主要测试荣耀 Magic 系列手机上的微信和小红书。

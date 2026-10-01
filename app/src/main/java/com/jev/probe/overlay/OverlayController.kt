@@ -3,6 +3,8 @@ package com.jev.probe.overlay
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -41,8 +43,7 @@ class OverlayController(private val ctx: Context) {
     private val wm = ctx.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private val prefs = Prefs(ctx)
     private var root: FrameLayout? = null
-    private var bubble: TextView? = null
-    private var dangerDot: View? = null
+    private var bubble: ConcentricBubbleView? = null
     private var panel: LinearLayout? = null
     private var contentBox: LinearLayout? = null
     private var expanded = false
@@ -133,7 +134,7 @@ class OverlayController(private val ctx: Context) {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = if (prefs.bubbleX in 0..(screenW - dp(52))) prefs.bubbleX else dp(8)
+            x = if (prefs.bubbleX in 0..(screenW - dp(46))) prefs.bubbleX else dp(8)
             y = if (prefs.bubbleY >= 0) prefs.bubbleY else dp(150)
         }
         lp = params
@@ -151,30 +152,14 @@ class OverlayController(private val ctx: Context) {
 
     private fun buildBubble(params: WindowManager.LayoutParams): View {
         val wrap = FrameLayout(ctx).apply {
-            layoutParams = FrameLayout.LayoutParams(dp(52), dp(52))
+            layoutParams = FrameLayout.LayoutParams(dp(46), dp(46))
         }
-        val b = TextView(ctx).apply {
-            text = "jevchat"
-            setTextColor(Color.WHITE)
-            gravity = Gravity.CENTER
-            textSize = 13f
-            setTypeface(typeface, Typeface.BOLD)
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(Color.argb(235, 58, 122, 254))
-            }
-            layoutParams = FrameLayout.LayoutParams(dp(52), dp(52))
-        }
-        val dot = View(ctx).apply {
-            background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.TRANSPARENT) }
-            layoutParams = FrameLayout.LayoutParams(dp(12), dp(12)).apply {
-                gravity = Gravity.TOP or Gravity.END
-            }
+        val b = ConcentricBubbleView(ctx).apply {
+            layoutParams = FrameLayout.LayoutParams(dp(46), dp(46))
         }
         wrap.addView(b)
-        wrap.addView(dot)
         attachBubbleTouch(wrap, params)
-        bubble = b; dangerDot = dot
+        bubble = b
         return wrap
     }
 
@@ -192,7 +177,7 @@ class OverlayController(private val ctx: Context) {
         // Header
         val header = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         header.addView(TextView(ctx).apply {
-            text = "jevchat 分析"; setTextColor(Color.parseColor("#111827")); textSize = 15f
+            text = "GalMagan 分析"; setTextColor(Color.parseColor("#111827")); textSize = 15f
             setTypeface(typeface, Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         })
@@ -242,7 +227,7 @@ class OverlayController(private val ctx: Context) {
                     // 与屏幕两侧保留边距，避免悬浮窗贴边影响拖动。
                     // back-gesture zone, which steals touches and makes the bubble
                     // "stuck". Free positioning (no forced edge snap) also avoids it.
-                    params.x = (startX + dx).coerceIn(dp(8), screenW - dp(60))
+                    params.x = (startX + dx).coerceIn(dp(8), screenW - dp(54))
                     params.y = (startY + dy).coerceIn(dp(24), screenH - dp(120))
                     root?.let { runCatching { wm.updateViewLayout(it, params) } }
                     true
@@ -272,7 +257,7 @@ class OverlayController(private val ctx: Context) {
         menu.addView(menuItem("预采集过去的历史") { root?.removeView(menu); onImportHistory?.invoke() })
         menu.addView(menuItem("把当前会话存为联系人") { onSaveContact?.invoke(); root?.removeView(menu) })
         menu.addView(menuItem("打开设置") { openSettings(); root?.removeView(menu) })
-        menu.addView(menuItem("关闭 jevchat") { root?.removeView(menu); onDisable?.invoke() })
+        menu.addView(menuItem("关闭 GalMagan") { root?.removeView(menu); onDisable?.invoke() })
         menu.addView(menuItem("取消") { root?.removeView(menu) })
         root?.addView(menu)
     }
@@ -304,9 +289,11 @@ class OverlayController(private val ctx: Context) {
             val maxTop = (screenH * 0.14f).roundToInt()
             if (params.y > maxTop) params.y = maxTop
             panel?.visibility = View.VISIBLE
+            bubble?.innerFilled = true
         } else {
             panel?.visibility = View.GONE
             params.x = collapsedX; params.y = collapsedY  // bubble returns to where it was
+            bubble?.innerFilled = false
         }
         android.util.Log.d("JEVASSIST", "overlay: toggle expanded=$expanded x=${params.x} y=${params.y} saved=($collapsedX,$collapsedY)")
         root?.let { runCatching { wm.updateViewLayout(it, params) } }
@@ -508,7 +495,7 @@ class OverlayController(private val ctx: Context) {
         val r = root ?: return
         choosingContact = false
         runCatching { wm.removeView(r) }
-        root = null; bubble = null; panel = null; contentBox = null; dangerDot = null; expanded = false
+        root = null; bubble = null; panel = null; contentBox = null; expanded = false
     }
 
     // --------------------------------------------------------------- rendering
@@ -657,8 +644,33 @@ class OverlayController(private val ctx: Context) {
 
     private fun tintBubbleDanger(score: Double) {
         val color = dangerColor(score.roundToInt())
-        dangerDot?.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL; setColor(color); setStroke(dp(2), Color.WHITE)
+        bubble?.accentColor = color
+    }
+
+    /** Small text-free overlay icon: two rings, with a filled inner ring when active. */
+    private class ConcentricBubbleView(context: Context) : View(context) {
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+        var innerFilled = false
+            set(value) { field = value; invalidate() }
+        var accentColor = Color.rgb(58, 122, 254)
+            set(value) { field = value; invalidate() }
+
+        override fun onDraw(canvas: Canvas) {
+            super.onDraw(canvas)
+            val center = width / 2f
+            val outer = width * 0.40f
+            val inner = width * 0.30f
+            paint.color = accentColor
+            paint.strokeWidth = width * 0.065f
+            paint.style = Paint.Style.STROKE
+            canvas.drawCircle(center, center, outer, paint)
+            if (innerFilled) {
+                paint.style = Paint.Style.FILL
+                canvas.drawCircle(center, center, inner, paint)
+            } else {
+                paint.style = Paint.Style.STROKE
+                canvas.drawCircle(center, center, inner, paint)
+            }
         }
     }
 

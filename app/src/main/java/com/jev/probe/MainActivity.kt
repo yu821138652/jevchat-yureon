@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity() {
     private fun build() {
         container.removeAllViews()
 
-        container.addView(text("jevchat（Yureon）", 24f, ink, bold = true))
+        container.addView(text("GalMagan", 24f, ink, bold = true))
         container.addView(text("读取当前聊天内容（当前重点支持微信和小红书），提供判断或话题续聊建议。发送始终由你手动点。",
             13f, sub).apply { setPadding(0, dp(6), 0, dp(16)) })
 
