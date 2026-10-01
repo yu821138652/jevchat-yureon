@@ -349,6 +349,7 @@ class OverlayController(private val ctx: Context) {
 
     fun showLoading() {
         ensureRoot(); bubble?.alpha = 1f
+        resetBubbleColor()
         ctxNotes = 0; ctxHistory = 0; ctxStyle = 0 // counts for the round that is starting
         historyInfo = null
         historyExpanded = false
@@ -471,6 +472,7 @@ class OverlayController(private val ctx: Context) {
 
     fun showError(msg: String) {
         ensureRoot(); bubble?.alpha = 1f
+        resetBubbleColor()
         val views = captureInfoViews().toMutableList()
         views.add(line("出错了", "#DC2626", 14f, true))
         views.add(hint(msg))
@@ -508,6 +510,9 @@ class OverlayController(private val ctx: Context) {
 
     private fun render(a: Analysis, generating: Boolean) {
         ensureRoot(); bubble?.alpha = 1f
+        // Each analysis starts from the neutral color. Continuation analyses
+        // have no danger score and must not inherit the previous warning color.
+        resetBubbleColor()
         panel?.background = card(18, panelBg(), stroke = true) // re-apply in case opacity changed
         val views = ArrayList<View>()
 
@@ -648,6 +653,10 @@ class OverlayController(private val ctx: Context) {
         bubble?.accentColor = color
     }
 
+    private fun resetBubbleColor() {
+        bubble?.accentColor = DEFAULT_BUBBLE_COLOR
+    }
+
     /** Small text-free overlay icon: two rings, with a filled inner ring when active. */
     private class ConcentricBubbleView(context: Context) : View(context) {
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
@@ -786,6 +795,7 @@ class OverlayController(private val ctx: Context) {
     }
 
     companion object {
+        private val DEFAULT_BUBBLE_COLOR = Color.rgb(58, 122, 254)
         private val INTENT = mapOf(
             "confirm_you_care" to "确认你在不在乎", "vent_anger" to "在发泄情绪",
             "request_action" to "要你办事", "seek_explanation" to "要个解释",

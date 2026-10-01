@@ -70,6 +70,7 @@ class KnowledgeActivity : AppCompatActivity() {
         container.addView(text("只存在本机，不上传。分析时按会话标题匹配联系人、按关键词命中笔记。",
             12f, sub).apply { setPadding(0, dp(6), 0, dp(4)) })
         container.addView(tabs())
+        container.addView(smallAction("查看全局说话风格") { styleDialog(null) })
         if (tab == 0) renderNotes() else renderContacts()
     }
 
@@ -267,6 +268,13 @@ class KnowledgeActivity : AppCompatActivity() {
             setOnClickListener { historyDialog(c0) }
         }
         c.addView(inspect)
+        val styleInspect = TextView(this).apply {
+            text = "查看此人说话风格样本（${store.styleExamples(c0.id).size} 条）"
+            textSize = 12.5f; setTextColor(accent); setTypeface(typeface, Typeface.BOLD)
+            setPadding(0, dp(8), 0, dp(2))
+            setOnClickListener { styleDialog(c0) }
+        }
+        c.addView(styleInspect)
         c.setOnClickListener { editContactDialog(c0) }
         c.setOnLongClickListener {
             confirm("删除联系人", "删除「${c0.name}」及其全部历史？不可恢复。") {
@@ -275,6 +283,34 @@ class KnowledgeActivity : AppCompatActivity() {
             true
         }
         return c
+    }
+
+    private fun styleDialog(contact: Contact?) {
+        val examples = store.styleExamples(contact?.id)
+        val title = contact?.name?.let { "$it · 说话风格样本" } ?: "全局 · 说话风格样本"
+        val body = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(8), dp(18), dp(8))
+        }
+        body.addView(text(
+            if (examples.isEmpty()) "还没有采集到我方消息样本。开启设置中的说话方式学习后，在聊天中识别到我方消息即可积累。"
+            else "共 ${examples.size} 条。样本只用于候选回复的表达参考，不会改变风险判断。",
+            12f, sub
+        ).apply { setPadding(0, 0, 0, dp(8)) })
+        examples.forEachIndexed { index, sample ->
+            body.addView(text("${index + 1}. $sample", 13f, ink).apply {
+                setPadding(0, dp(5), 0, dp(5))
+            })
+        }
+        val scroll = ScrollView(this).apply {
+            addView(body)
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(520))
+        }
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setView(scroll)
+            .setPositiveButton("关闭", null)
+            .show()
     }
 
     private fun historyDialog(contact: Contact) {
@@ -366,6 +402,15 @@ class KnowledgeActivity : AppCompatActivity() {
     }
 
     // ----------------------------------------------------------------- atoms
+
+    private fun smallAction(labelText: String, onClick: () -> Unit) = TextView(this).apply {
+        text = labelText
+        textSize = 12.5f
+        setTextColor(accent)
+        setTypeface(typeface, Typeface.BOLD)
+        setPadding(0, dp(10), 0, dp(4))
+        setOnClickListener { onClick() }
+    }
 
     private fun confirm(title: String, msg: String, onYes: () -> Unit) {
         AlertDialog.Builder(this)
