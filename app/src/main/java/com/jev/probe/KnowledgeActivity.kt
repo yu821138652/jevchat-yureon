@@ -296,7 +296,8 @@ class KnowledgeActivity : AppCompatActivity() {
         val title = contact?.name?.let { "面向$it · 说话风格" } ?: "全局说话风格"
         val body = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(8), dp(18), dp(8))
+            background = round(dp(12), Color.parseColor("#F7F8FA"))
+            setPadding(dp(16), dp(12), dp(16), dp(12))
         }
         body.addView(text(
             if (profile == null) "还没有合成风格档案。请先点击主动合成，并确保本地已有我方聊天历史。"
@@ -310,14 +311,15 @@ class KnowledgeActivity : AppCompatActivity() {
         }
         val scroll = ScrollView(this).apply {
             addView(body)
-            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(520))
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(390))
         }
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(title)
             .setView(scroll)
             .setPositiveButton("编辑") { _, _ -> editStyleDialog(contact) }
             .setNegativeButton("关闭", null)
             .show()
+        styleDialogWindow(dialog)
     }
 
     private fun editStyleDialog(contact: Contact?) {
@@ -333,7 +335,7 @@ class KnowledgeActivity : AppCompatActivity() {
             gravity = Gravity.TOP
         }
         box.addView(input)
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(if (contact == null) "编辑全局说话风格" else "编辑面向${contact.name}的说话风格")
             .setView(wrapScroll(box))
             .setPositiveButton("保存") { _, _ ->
@@ -353,6 +355,15 @@ class KnowledgeActivity : AppCompatActivity() {
             }
             .setNegativeButton("取消", null)
             .show()
+        styleDialogWindow(dialog)
+    }
+
+    private fun styleDialogWindow(dialog: AlertDialog) {
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.90f).roundToInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(accent)
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(sub)
     }
 
     private fun synthesizeStyle(contact: Contact?) {
