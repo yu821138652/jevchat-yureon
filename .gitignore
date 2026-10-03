@@ -36,13 +36,10 @@ Thumbs.db
 *.key
 secrets.*
 
-# Prebuilt APK for direct install (tracked on purpose)
-!/apk/*.apk
-
 # Signing material never enters the repo
 *.jks
 *.keystore
 keystore.properties
 
-# Old upstream release package; build locally or use GitHub Releases
-/apk/*.apk
+# APK files are build artifacts; build locally or publish them through GitHub Releases
+/apk/
