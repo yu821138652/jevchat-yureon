@@ -1,6 +1,6 @@
 # 项目维护
 
-GalMagan 是 `yu821138652/jevchat-yureon` 中的个人 Android 项目。
+GalMagan 是 `yu821138652/GalMagan` 中的个人 Android 项目。
 
 - 维护者：[@yu821138652](https://github.com/yu821138652)
 - 目标设备：荣耀 Magic 系列 Android 手机

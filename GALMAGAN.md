@@ -6,6 +6,6 @@
 
 当前稳定基线为 `1.6.0`，对应 Git 标签为 `v1.6.0`。后续暂以问题修复和小幅维护为主。
 
-个人仓库：<https://github.com/yu821138652/jevchat-yureon>
+个人仓库：<https://github.com/yu821138652/GalMagan>
 
 隐私说明：API 密钥、联系人资料和聊天历史只保存在手机 App 私有空间，不进入 Git 仓库。上游出处和许可证要求见 [NOTICE](NOTICE) 与 [LICENSE](LICENSE)。
