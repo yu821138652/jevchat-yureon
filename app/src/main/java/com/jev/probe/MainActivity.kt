@@ -11,6 +11,7 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -31,11 +32,12 @@ class MainActivity : AppCompatActivity() {
     private val a11yComponent =
         "${BuildConfig.APPLICATION_ID}/com.google.android.accessibility.selecttospeak.SelectToSpeakService"
 
-    private val accent = Color.parseColor("#3A7AFE")
+    private val accent = Color.parseColor("#2F6BFF")
+    private val violet = Color.parseColor("#B45AD6")
     private val green = Color.parseColor("#16A34A")
     private val red = Color.parseColor("#DC2626")
-    private val ink = Color.parseColor("#111827")
-    private val sub = Color.parseColor("#6B7280")
+    private val ink = Color.parseColor("#172230")
+    private val sub = Color.parseColor("#667085")
 
     private fun dp(v: Int) = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics).roundToInt()
@@ -43,7 +45,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
-        window.decorView.setBackgroundColor(Color.parseColor("#F2F3F5"))
+        window.decorView.setBackgroundColor(Color.parseColor("#F6F8FB"))
 
         val scroll = ScrollView(this)
         container = LinearLayout(this).apply {
@@ -63,7 +65,7 @@ class MainActivity : AppCompatActivity() {
     private fun build() {
         container.removeAllViews()
 
-        container.addView(text("GalMagan", 24f, ink, bold = true))
+        container.addView(brandHeader())
         container.addView(text("读取当前聊天内容（当前重点支持微信和小红书），提供判断或话题续聊建议。发送始终由你手动点。",
             13f, sub).apply { setPadding(0, dp(6), 0, dp(16)) })
 
@@ -90,7 +92,10 @@ class MainActivity : AppCompatActivity() {
         })
 
         // Actions
-        container.addView(sectionLabel("其他"))
+        container.addView(sectionLabel("常用入口"))
+        container.addView(actionRow("知识库与联系人", "笔记 · 联系人 · 历史记录 · 说话风格") {
+            startActivity(Intent(this, KnowledgeActivity::class.java))
+        })
         container.addView(actionRow("设置", "密钥 · 模型 · 关系 · 透明度 · 会话白名单") {
             startActivity(Intent(this, SettingsActivity::class.java))
         })
@@ -109,6 +114,31 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------------------------------------------------------------- cards
+
+    private fun brandHeader(): View {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, dp(2))
+        }
+        row.addView(ImageView(this).apply {
+            setImageResource(R.drawable.galmagan_icon)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            layoutParams = LinearLayout.LayoutParams(dp(48), dp(48)).apply { rightMargin = dp(12) }
+            contentDescription = "GalMagan 图标"
+            clipToOutline = true
+        })
+        val copy = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        copy.addView(text("GalMagan", 24f, ink, bold = true))
+        copy.addView(text("看见对话，理解关系，给出下一句", 12f, violet).apply {
+            setPadding(0, dp(2), 0, 0)
+        })
+        row.addView(copy)
+        return row
+    }
 
     private fun statusCard(ready: Boolean, a11y: Boolean, overlay: Boolean, key: Boolean): View {
         val c = cardBox()
@@ -191,7 +221,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun cardBox(): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        background = roundBg(dp(14), Color.WHITE)
+        background = roundBg(dp(14), Color.WHITE, stroke = true)
         setPadding(dp(14), dp(13), dp(14), dp(13))
         layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
@@ -222,7 +252,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun roundBg(radius: Int, color: Int, stroke: Boolean = false) = GradientDrawable().apply {
         cornerRadius = radius.toFloat(); setColor(color)
-        if (stroke) setStroke(dp(1), accent)
+        if (stroke) setStroke(dp(1), Color.parseColor("#E1E7EF"))
     }
 
     private fun isA11yEnabled(): Boolean {

@@ -21,6 +21,7 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.jev.probe.core.ChatSnapshot
 import com.jev.probe.core.Msg
 import com.jev.probe.core.Prefs
@@ -38,10 +39,10 @@ class SettingsActivity : AppCompatActivity() {
     private val worker = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
 
-    private val accent = Color.parseColor("#3A7AFE")
-    private val ink = Color.parseColor("#111827")
-    private val sub = Color.parseColor("#6B7280")
-    private val pillOff = Color.parseColor("#EEF1F5")
+    private val accent = Color.parseColor("#2F6BFF")
+    private val ink = Color.parseColor("#172230")
+    private val sub = Color.parseColor("#667085")
+    private val pillOff = Color.parseColor("#EEF2F7")
 
     /** Selected provider index per card, held so Save can read it back. */
     private var judgeProviderIdx = 0
@@ -54,7 +55,7 @@ class SettingsActivity : AppCompatActivity() {
         prefs = Prefs(this)
         Log.i(TAG, "settings opened judgeKey.len=${prefs.judgeKey.length}" +
             " replyKey.len=${prefs.replyKey.length} visionKey.len=${prefs.visionKey.length}")
-        window.decorView.setBackgroundColor(Color.parseColor("#F2F3F5"))
+        window.decorView.setBackgroundColor(Color.parseColor("#F6F8FB"))
 
         val scroll = ScrollView(this)
         val root = LinearLayout(this).apply {
@@ -65,6 +66,8 @@ class SettingsActivity : AppCompatActivity() {
         scroll.addView(root)
 
         root.addView(header("设置"))
+        root.addView(text("控制接口、分析行为、历史记录和悬浮窗显示。修改后点击底部保存。",
+            12f, sub).apply { setPadding(0, dp(2), 0, dp(6)) })
 
         // =================== 接口 ===================
         root.addView(section("接口"))
@@ -145,6 +148,7 @@ class SettingsActivity : AppCompatActivity() {
             }
         })
         judgeCard.addView(judgeResult)
+        makeCollapsible(judgeCard)
         root.addView(judgeCard)
 
         // --- 回复接口 ---
@@ -200,6 +204,7 @@ class SettingsActivity : AppCompatActivity() {
             }
         })
         replyCard.addView(replyResult)
+        makeCollapsible(replyCard)
         root.addView(replyCard)
 
         // --- 视觉接口 ---
@@ -258,6 +263,7 @@ class SettingsActivity : AppCompatActivity() {
             }
         })
         visionCard.addView(visionResult)
+        makeCollapsible(visionCard)
         root.addView(visionCard)
 
         // =================== 分析 ===================
@@ -552,24 +558,45 @@ class SettingsActivity : AppCompatActivity() {
         val lab = text(labelText, 14f, ink).apply {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
-        val sw = TextView(this).apply {
-            text = if (initial) "开" else "关"; textSize = 13f; gravity = Gravity.CENTER
-            setTypeface(typeface, Typeface.BOLD)
-            setTextColor(if (initial) Color.WHITE else sub)
-            background = round(dp(10), if (initial) accent else Color.parseColor("#E5E7EB"))
-            setPadding(dp(18), dp(6), dp(18), dp(6))
+        val sw = SwitchMaterial(this).apply {
+            isChecked = initial
+            contentDescription = labelText
+            layoutParams = LinearLayout.LayoutParams(dp(52), dp(40))
         }
-        sw.setOnClickListener {
-            val now = !((row.tag as? Boolean) ?: true); row.tag = now
-            sw.text = if (now) "开" else "关"
-            sw.setTextColor(if (now) Color.WHITE else sub)
-            sw.background = round(dp(10), if (now) accent else Color.parseColor("#E5E7EB"))
-        }
+        sw.setOnCheckedChangeListener { _, checked -> row.tag = checked }
         row.addView(lab); row.addView(sw)
         return row
     }
 
     // atoms
+    /** Keep the settings page scannable while leaving every provider field available. */
+    private fun makeCollapsible(card: LinearLayout) {
+        val firstConfig = 2 // title + explanation remain visible
+        for (i in firstConfig until card.childCount) card.getChildAt(i).visibility = View.GONE
+        var expanded = false
+        val toggle = TextView(this).apply {
+            text = "展开接口配置"
+            textSize = 12.5f
+            gravity = Gravity.CENTER
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(accent)
+            background = round(dp(9), Color.parseColor("#EEF4FF"))
+            minHeight = dp(38)
+            setPadding(dp(10), dp(6), dp(10), dp(6))
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(38)
+            ).apply { topMargin = dp(10) }
+        }
+        card.addView(toggle, firstConfig)
+        toggle.setOnClickListener {
+            expanded = !expanded
+            for (i in firstConfig + 1 until card.childCount) {
+                card.getChildAt(i).visibility = if (expanded) View.VISIBLE else View.GONE
+            }
+            toggle.text = if (expanded) "收起接口配置" else "展开接口配置"
+        }
+    }
+
     private fun header(t: String) = text(t, 24f, ink, bold = true).apply { setPadding(0, 0, 0, dp(4)) }
     private fun section(t: String) = text(t, 12f, sub, bold = true).apply { setPadding(dp(2), dp(16), 0, dp(6)) }
     private fun label(t: String) = text(t, 13f, ink, bold = true).apply { setPadding(0, dp(12), 0, dp(4)) }
@@ -578,8 +605,8 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun card() = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        background = round(dp(14), Color.WHITE)
-        setPadding(dp(14), dp(4), dp(14), dp(14))
+        background = round(dp(14), Color.WHITE, stroke = true)
+        setPadding(dp(16), dp(8), dp(16), dp(16))
         layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             .apply { topMargin = dp(10) }
@@ -588,7 +615,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun edit(value: String, hint: String, password: Boolean = false) = EditText(this).apply {
         setText(value); this.hint = hint; textSize = 14f; setTextColor(ink)
         setHintTextColor(Color.parseColor("#9CA3AF"))
-        background = round(dp(8), Color.parseColor("#F3F4F6"))
+        background = round(dp(9), Color.parseColor("#F2F5F9"))
         setPadding(dp(10), dp(10), dp(10), dp(10))
         // Masked, not VISIBLE_PASSWORD: an API key should not sit in plain sight.
         if (password) inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
@@ -634,7 +661,8 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun round(radius: Int, color: Int, stroke: Boolean = false) = GradientDrawable().apply {
-        cornerRadius = radius.toFloat(); setColor(color); if (stroke) setStroke(dp(1), accent)
+        cornerRadius = radius.toFloat(); setColor(color)
+        if (stroke) setStroke(dp(1), Color.parseColor("#E1E7EF"))
     }
 
     override fun onDestroy() { super.onDestroy(); worker.shutdownNow() }

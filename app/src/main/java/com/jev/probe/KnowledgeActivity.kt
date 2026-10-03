@@ -16,9 +16,11 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.jev.probe.core.kb.Contact
 import com.jev.probe.core.kb.KbStore
 import com.jev.probe.core.kb.Note
+import com.jev.probe.core.kb.timeLabel
 import com.jev.probe.core.Prefs
 import com.jev.probe.jev.ReplyClient
 import java.util.concurrent.Executors
@@ -41,10 +43,11 @@ class KnowledgeActivity : AppCompatActivity() {
     /** 0 = notes, 1 = contacts. */
     private var tab = 0
 
-    private val accent = Color.parseColor("#3A7AFE")
-    private val ink = Color.parseColor("#111827")
-    private val sub = Color.parseColor("#6B7280")
-    private val pillOff = Color.parseColor("#EEF1F5")
+    private val accent = Color.parseColor("#2F6BFF")
+    private val violet = Color.parseColor("#B45AD6")
+    private val ink = Color.parseColor("#172230")
+    private val sub = Color.parseColor("#667085")
+    private val pillOff = Color.parseColor("#EEF2F7")
     private val red = Color.parseColor("#DC2626")
 
     private fun dp(v: Int) = TypedValue.applyDimension(
@@ -53,7 +56,7 @@ class KnowledgeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = KbStore.get(this)
-        window.decorView.setBackgroundColor(Color.parseColor("#F2F3F5"))
+        window.decorView.setBackgroundColor(Color.parseColor("#F6F8FB"))
 
         val scroll = ScrollView(this)
         container = LinearLayout(this).apply {
@@ -74,9 +77,34 @@ class KnowledgeActivity : AppCompatActivity() {
         container.addView(text("只存在本机，不上传。分析时按会话标题匹配联系人、按关键词命中笔记。",
             12f, sub).apply { setPadding(0, dp(6), 0, dp(4)) })
         container.addView(tabs())
-        container.addView(smallAction("主动合成/更新全局说话风格") { synthesizeStyle(null) })
-        container.addView(smallAction("查看全局说话风格") { styleDialog(null) })
+        container.addView(styleSummary())
         if (tab == 0) renderNotes() else renderContacts()
+    }
+
+    private fun styleSummary(): View {
+        val profile = store.styleProfile(null)
+        val c = card()
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val copy = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        copy.addView(text("全局说话风格", 15f, ink, bold = true))
+        copy.addView(text(
+            if (profile == null) "尚未生成，候选回复将使用默认表达"
+            else "已生成本地档案，用于贴近你的表达方式",
+            12f, sub
+        ).apply { setPadding(0, dp(3), 0, 0) })
+        header.addView(copy)
+        header.addView(text(if (profile == null) "未生成" else "已就绪", 12f,
+            if (profile == null) sub else violet, bold = true))
+        c.addView(header)
+        c.addView(twoButtons("查看档案", { styleDialog(null) },
+            "合成 / 更新", { synthesizeStyle(null) }))
+        return c
     }
 
     private fun tabs(): View {
@@ -89,17 +117,18 @@ class KnowledgeActivity : AppCompatActivity() {
         listOf("笔记", "联系人").forEachIndexed { i, name ->
             val pill = TextView(this).apply {
                 text = name; textSize = 13f; gravity = Gravity.CENTER
-                setPadding(dp(18), dp(8), dp(18), dp(8))
+                setPadding(dp(12), dp(10), dp(12), dp(10))
                 layoutParams = LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT).apply { rightMargin = dp(8) }
+                    0, dp(40), 1f)
                 setTextColor(if (i == tab) Color.WHITE else sub)
                 setTypeface(typeface, if (i == tab) Typeface.BOLD else Typeface.NORMAL)
-                background = round(dp(9), if (i == tab) accent else pillOff)
+                background = round(dp(10), if (i == tab) accent else Color.TRANSPARENT)
                 setOnClickListener { tab = i; render() }
             }
             row.addView(pill)
         }
+        row.background = round(dp(11), pillOff, stroke = true)
+        row.setPadding(dp(3), dp(3), dp(3), dp(3))
         return row
     }
 
@@ -164,7 +193,7 @@ class KnowledgeActivity : AppCompatActivity() {
         box.addView(label("标签")); box.addView(tagsEdit)
         box.addView(alwaysRow); box.addView(enabledRow)
 
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(if (existing == null) "新建笔记" else "编辑笔记")
             .setView(wrapScroll(box))
             .setPositiveButton("保存") { _, _ ->
@@ -185,6 +214,7 @@ class KnowledgeActivity : AppCompatActivity() {
             }
             .setNegativeButton("取消", null)
             .show()
+        styleDialogWindow(dialog)
     }
 
     private fun importNotesDialog() {
@@ -195,7 +225,7 @@ class KnowledgeActivity : AppCompatActivity() {
             minLines = 8; gravity = Gravity.TOP
         }
         box.addView(input)
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle("从文本导入")
             .setView(wrapScroll(box))
             .setPositiveButton("导入") { _, _ ->
@@ -217,6 +247,7 @@ class KnowledgeActivity : AppCompatActivity() {
             }
             .setNegativeButton("取消", null)
             .show()
+        styleDialogWindow(dialog)
     }
 
     private fun splitTags(raw: String): List<String> =
@@ -239,10 +270,23 @@ class KnowledgeActivity : AppCompatActivity() {
 
     private fun contactRow(c0: Contact): View {
         val c = card()
-        c.addView(text(c0.name.ifBlank { "（无名）" }, 15f, ink, bold = true))
-        if (c0.aliases.isNotEmpty())
-            c.addView(text("别名：" + c0.aliases.joinToString("、"), 12f, sub)
+        val top = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        top.addView(contactMark(c0.name))
+        val identity = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        identity.addView(text(c0.name.ifBlank { "（无名）" }, 15f, ink, bold = true))
+        if (c0.aliases.isNotEmpty()) {
+            identity.addView(text("别名：" + c0.aliases.joinToString("、"), 12f, sub)
                 .apply { setPadding(0, dp(3), 0, 0) })
+        }
+        top.addView(identity)
+        top.addView(text("历史 ${store.logSize(c0.id)} 条", 11.5f, violet, bold = true))
+        c.addView(top)
         if (c0.apps.isNotEmpty())
             c.addView(text("来源：" + c0.apps.joinToString("、") { appLabel(it) }, 12f, sub)
                 .apply { setPadding(0, dp(3), 0, 0) })
@@ -408,16 +452,7 @@ class KnowledgeActivity : AppCompatActivity() {
             entries.forEachIndexed { index, entry ->
                 val key = entry.side + "\u001f" + entry.text
                 val duplicate = !seen.add(key)
-                val source = appLabel(entry.app)
-                val prefix = if (entry.side == "me") "我" else "对方"
-                val marker = if (duplicate) "  · 可能重复" else ""
-                body.addView(text(
-                    "${index + 1}. $prefix · $source$marker\n${entry.text}",
-                    13f,
-                    if (duplicate) red else ink
-                ).apply {
-                    setPadding(0, dp(5), 0, dp(5))
-                })
+                body.addView(historyBubble(index + 1, entry, duplicate))
             }
         }
         val scroll = ScrollView(this).apply {
@@ -426,11 +461,45 @@ class KnowledgeActivity : AppCompatActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(520)
             )
         }
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle("${contact.name} · 本地历史")
             .setView(scroll)
             .setPositiveButton("关闭", null)
             .show()
+        styleDialogWindow(dialog)
+    }
+
+    private fun historyBubble(index: Int, entry: com.jev.probe.core.kb.LogEntry, duplicate: Boolean): View {
+        val mine = entry.side == "me"
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = if (mine) Gravity.END else Gravity.START
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+        }
+        val bubble = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = round(dp(12), if (mine) Color.parseColor("#EEF4FF") else Color.WHITE, stroke = true)
+            setPadding(dp(11), dp(8), dp(11), dp(8))
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.90f).apply {
+                marginStart = if (mine) dp(28) else 0
+                marginEnd = if (mine) 0 else dp(28)
+            }
+        }
+        val meta = buildString {
+            append(index).append(" · ").append(if (mine) "我" else "对方")
+            append(" · ").append(appLabel(entry.app))
+            if (entry.ts > 0L) append(" · ").append(entry.timeLabel())
+        }
+        bubble.addView(text(meta, 10.5f, if (duplicate) red else sub, bold = duplicate))
+        bubble.addView(text(entry.text, 13.5f, ink).apply {
+            setPadding(0, dp(4), 0, if (duplicate) dp(3) else 0)
+            setLineSpacing(dp(2).toFloat(), 1f)
+        })
+        if (duplicate) bubble.addView(text("可能重复", 10.5f, red, bold = true))
+        row.addView(bubble)
+        return row
     }
 
     private fun editContactDialog(existing: Contact?) {
@@ -450,7 +519,7 @@ class KnowledgeActivity : AppCompatActivity() {
         box.addView(label("关系")); box.addView(relEdit)
         box.addView(label("备注")); box.addView(notesEdit)
 
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(if (existing == null) "新建联系人" else "编辑联系人")
             .setView(wrapScroll(box))
             .setPositiveButton("保存") { _, _ ->
@@ -470,6 +539,7 @@ class KnowledgeActivity : AppCompatActivity() {
             }
             .setNegativeButton("取消", null)
             .show()
+        styleDialogWindow(dialog)
     }
 
     private fun appLabel(pkg: String): String = when (pkg) {
@@ -483,12 +553,27 @@ class KnowledgeActivity : AppCompatActivity() {
 
     // ----------------------------------------------------------------- atoms
 
+    private fun contactMark(name: String): TextView = TextView(this).apply {
+        text = name.trim().firstOrNull()?.uppercase() ?: "?"
+        textSize = 15f
+        gravity = Gravity.CENTER
+        setTextColor(Color.WHITE)
+        setTypeface(typeface, Typeface.BOLD)
+        background = round(dp(12), Color.parseColor("#496DFF"))
+        layoutParams = LinearLayout.LayoutParams(dp(40), dp(40)).apply { rightMargin = dp(10) }
+    }
+
     private fun smallAction(labelText: String, onClick: () -> Unit) = TextView(this).apply {
         text = labelText
         textSize = 12.5f
         setTextColor(accent)
         setTypeface(typeface, Typeface.BOLD)
-        setPadding(0, dp(10), 0, dp(4))
+        gravity = Gravity.CENTER
+        background = round(dp(10), Color.parseColor("#EEF4FF"))
+        setPadding(dp(12), dp(7), dp(12), dp(7))
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, dp(38)
+        ).apply { topMargin = dp(8) }
         setOnClickListener { onClick() }
     }
 
@@ -552,19 +637,12 @@ class KnowledgeActivity : AppCompatActivity() {
         val lab = text(labelText, 14f, ink).apply {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
-        val sw = TextView(this).apply {
-            text = if (initial) "开" else "关"; textSize = 13f; gravity = Gravity.CENTER
-            setTypeface(typeface, Typeface.BOLD)
-            setTextColor(if (initial) Color.WHITE else sub)
-            background = round(dp(10), if (initial) accent else Color.parseColor("#E5E7EB"))
-            setPadding(dp(18), dp(6), dp(18), dp(6))
+        val sw = SwitchMaterial(this).apply {
+            isChecked = initial
+            contentDescription = labelText
+            layoutParams = LinearLayout.LayoutParams(dp(52), dp(40))
         }
-        sw.setOnClickListener {
-            val now = !((row.tag as? Boolean) ?: true); row.tag = now
-            sw.text = if (now) "开" else "关"
-            sw.setTextColor(if (now) Color.WHITE else sub)
-            sw.background = round(dp(10), if (now) accent else Color.parseColor("#E5E7EB"))
-        }
+        sw.setOnCheckedChangeListener { _, checked -> row.tag = checked }
         row.addView(lab); row.addView(sw)
         return row
     }
@@ -573,7 +651,7 @@ class KnowledgeActivity : AppCompatActivity() {
 
     private fun card() = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        background = round(dp(14), Color.WHITE)
+        background = round(dp(14), Color.WHITE, stroke = true)
         setPadding(dp(14), dp(12), dp(14), dp(12))
         layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -585,7 +663,7 @@ class KnowledgeActivity : AppCompatActivity() {
     private fun edit(value: String, hintText: String) = EditText(this).apply {
         setText(value); hint = hintText; textSize = 14f; setTextColor(ink)
         setHintTextColor(Color.parseColor("#9CA3AF"))
-        background = round(dp(8), Color.parseColor("#F3F4F6"))
+        background = round(dp(9), Color.parseColor("#F2F5F9"))
         setPadding(dp(10), dp(10), dp(10), dp(10))
         layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -599,6 +677,6 @@ class KnowledgeActivity : AppCompatActivity() {
 
     private fun round(radius: Int, color: Int, stroke: Boolean = false) = GradientDrawable().apply {
         cornerRadius = radius.toFloat(); setColor(color)
-        if (stroke) setStroke(dp(1), accent)
+        if (stroke) setStroke(dp(1), Color.parseColor("#E1E7EF"))
     }
 }

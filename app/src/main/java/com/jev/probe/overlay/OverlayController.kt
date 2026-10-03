@@ -119,7 +119,7 @@ class OverlayController(private val ctx: Context) {
     private fun card(radius: Int, color: Int, stroke: Boolean = false) = GradientDrawable().apply {
         cornerRadius = dp(radius).toFloat()
         setColor(color)
-        if (stroke) setStroke(dp(1), Color.parseColor("#22000000"))
+        if (stroke) setStroke(dp(1), Color.parseColor("#DDE4EE"))
     }
 
     // ---------------------------------------------------------------- window
@@ -168,17 +168,17 @@ class OverlayController(private val ctx: Context) {
         val p = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             visibility = View.GONE
-            background = card(18, panelBg(), stroke = true)
-            elevation = dp(8).toFloat()
-            setPadding(dp(14), dp(12), dp(14), dp(12))
-            layoutParams = FrameLayout.LayoutParams(dp(316), FrameLayout.LayoutParams.WRAP_CONTENT).apply {
+            background = card(16, panelBg(), stroke = true)
+            elevation = dp(10).toFloat()
+            setPadding(dp(16), dp(13), dp(16), dp(13))
+            layoutParams = FrameLayout.LayoutParams(dp(320), FrameLayout.LayoutParams.WRAP_CONTENT).apply {
                 topMargin = dp(56) // sit just below the bubble
             }
         }
         // Header
         val header = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         header.addView(TextView(ctx).apply {
-            text = "GalMagan 分析"; setTextColor(Color.parseColor("#111827")); textSize = 15f
+            text = "GalMagan 分析"; setTextColor(Color.parseColor("#172230")); textSize = 16f
             setTypeface(typeface, Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         })
@@ -202,8 +202,10 @@ class OverlayController(private val ctx: Context) {
     }
 
     private fun iconBtn(glyph: String, onClick: () -> Unit) = TextView(ctx).apply {
-        text = glyph; setTextColor(Color.parseColor("#6B7280")); textSize = 16f
-        setPadding(dp(10), dp(2), dp(6), dp(2))
+        text = glyph; setTextColor(Color.parseColor("#667085")); textSize = 16f
+        gravity = Gravity.CENTER
+        minWidth = dp(40); minHeight = dp(40)
+        setPadding(dp(8), dp(2), dp(8), dp(2))
         setOnClickListener { onClick() }
     }
 
@@ -264,8 +266,9 @@ class OverlayController(private val ctx: Context) {
     }
 
     private fun menuItem(label: String, onClick: () -> Unit) = TextView(ctx).apply {
-        text = label; setTextColor(Color.parseColor("#111827")); textSize = 14f
-        setPadding(dp(12), dp(10), dp(12), dp(10)); setOnClickListener { onClick() }
+        text = label; setTextColor(Color.parseColor("#172230")); textSize = 14f
+        minHeight = dp(44)
+        setPadding(dp(14), dp(10), dp(14), dp(10)); setOnClickListener { onClick() }
     }
 
     private fun openSettings() {
@@ -340,7 +343,7 @@ class OverlayController(private val ctx: Context) {
     private fun bigButton(label: String, onClick: () -> Unit) = TextView(ctx).apply {
         text = label; textSize = 14f; gravity = Gravity.CENTER
         setTextColor(Color.WHITE); setTypeface(typeface, Typeface.BOLD)
-        background = card(12, Color.parseColor("#3A7AFE"))
+        background = card(12, Color.parseColor("#2F6BFF"))
         setPadding(dp(12), dp(11), dp(12), dp(11))
         layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -604,7 +607,7 @@ class OverlayController(private val ctx: Context) {
 
     private fun replyCard(rank: Int, text: String, pct: Int, onFill: (String) -> Unit): View {
         val top = rank == 1
-        val cardBg = if (top) Color.parseColor("#EAF1FF") else Color.parseColor("#F3F4F6")
+        val cardBg = if (top) Color.parseColor("#EEF4FF") else Color.parseColor("#F5F7FA")
         val c = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             background = card(12, cardBg)
@@ -614,11 +617,11 @@ class OverlayController(private val ctx: Context) {
             ).apply { topMargin = dp(6) }
         }
         c.addView(TextView(ctx).apply {
-            this.text = "#$rank · ${pct}%"; setTextColor(Color.parseColor("#3A7AFE")); textSize = 11f
+            this.text = "#$rank · ${pct}%"; setTextColor(Color.parseColor("#2F6BFF")); textSize = 11f
             setTypeface(typeface, Typeface.BOLD)
         })
         c.addView(TextView(ctx).apply {
-            this.text = text; setTextColor(Color.parseColor("#111827")); textSize = 14f
+            this.text = text; setTextColor(Color.parseColor("#172230")); textSize = 14f
             setPadding(0, dp(3), 0, dp(7)); setLineSpacing(dp(2).toFloat(), 1f)
         })
         val btns = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
@@ -632,8 +635,8 @@ class OverlayController(private val ctx: Context) {
     private fun pill(label: String, primary: Boolean, onClick: () -> Unit) = TextView(ctx).apply {
         text = label; textSize = 13f; gravity = Gravity.CENTER
         setTypeface(typeface, Typeface.BOLD)
-        setTextColor(if (primary) Color.WHITE else Color.parseColor("#3A7AFE"))
-        background = card(18, if (primary) Color.parseColor("#3A7AFE") else Color.parseColor("#FFFFFF"), stroke = !primary)
+        setTextColor(if (primary) Color.WHITE else Color.parseColor("#2F6BFF"))
+        background = card(18, if (primary) Color.parseColor("#2F6BFF") else Color.parseColor("#FFFFFF"), stroke = !primary)
         setPadding(dp(18), dp(6), dp(18), dp(6))
         layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
@@ -643,7 +646,7 @@ class OverlayController(private val ctx: Context) {
 
     private fun reAnalyzeBtn() = TextView(ctx).apply {
         text = "重新分析"; textSize = 13f; gravity = Gravity.CENTER
-        setTextColor(Color.parseColor("#6B7280"))
+        setTextColor(Color.parseColor("#667085"))
         setPadding(dp(10), dp(10), dp(10), dp(4))
         setOnClickListener { onManualAnalyze?.invoke() }
     }
@@ -690,7 +693,7 @@ class OverlayController(private val ctx: Context) {
         val title = conversationTitle
         val titleView = line(
             "会话标题：${title ?: "未识别"}",
-            if (title == null) "#DC2626" else "#374151",
+            if (title == null) "#C24141" else "#344054",
             12f
         ).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END }
         val titleControls = listOf(titleView, smallAction("选择联系人") {
@@ -718,7 +721,7 @@ class OverlayController(private val ctx: Context) {
     private fun defaultChoice() = TextView(ctx).apply {
         text = "默认（不使用联系人历史）"
         textSize = 13f
-        setTextColor(Color.parseColor("#111827"))
+        setTextColor(Color.parseColor("#172230"))
         gravity = Gravity.CENTER_VERTICAL
         setPadding(dp(10), dp(8), dp(10), dp(8))
         background = card(8, Color.WHITE, stroke = true)
@@ -738,7 +741,7 @@ class OverlayController(private val ctx: Context) {
         text = if (contact.aliases.isEmpty()) contact.name
         else "${contact.name}（${contact.aliases.joinToString("、")}）"
         textSize = 13f
-        setTextColor(Color.parseColor("#111827"))
+        setTextColor(Color.parseColor("#172230"))
         gravity = Gravity.CENTER_VERTICAL
         setPadding(dp(10), dp(8), dp(10), dp(8))
         background = card(8, Color.WHITE, stroke = true)
@@ -753,9 +756,13 @@ class OverlayController(private val ctx: Context) {
 
     private fun smallAction(label: String, onClick: () -> Unit) = TextView(ctx).apply {
         text = label; textSize = 12f; gravity = Gravity.CENTER
-        setTextColor(Color.parseColor("#3A7AFE"))
-        setPadding(dp(8), dp(5), dp(8), dp(5))
-        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36))
+        setTextColor(Color.parseColor("#2F6BFF"))
+        gravity = Gravity.CENTER
+        background = card(9, Color.parseColor("#EEF4FF"))
+        setPadding(dp(10), dp(5), dp(10), dp(5))
+        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36)).apply {
+            topMargin = dp(4)
+        }
         setOnClickListener { onClick() }
     }
 
@@ -766,10 +773,10 @@ class OverlayController(private val ctx: Context) {
             setPadding(0, dp(2), 0, dp(2))
         }
 
-    private fun hint(text: String) = line(text, "#9CA3AF", 12f)
+    private fun hint(text: String) = line(text, "#667085", 12f)
 
     private fun divider() = View(ctx).apply {
-        setBackgroundColor(Color.parseColor("#1F000000"))
+        setBackgroundColor(Color.parseColor("#DDE4EE"))
         layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)).apply {
             topMargin = dp(8); bottomMargin = dp(4)
         }
